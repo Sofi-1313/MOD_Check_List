@@ -10,11 +10,24 @@ const viteEnv =
     ? ((import.meta as { env?: Record<string, string | undefined> }).env ?? {})
     : {};
 
-const configuredApiBase =
-  viteEnv.VITE_API_BASE ? String(viteEnv.VITE_API_BASE) : "";
+function trimTrailingSlash(value: string) {
+  return value.replace(/\/+$/, "");
+}
+
+const configuredApiRoot = viteEnv.VITE_API_URL
+  ? trimTrailingSlash(String(viteEnv.VITE_API_URL))
+  : "";
+
+const configuredApiBase = viteEnv.VITE_API_BASE
+  ? trimTrailingSlash(String(viteEnv.VITE_API_BASE))
+  : configuredApiRoot
+    ? `${configuredApiRoot}/api`
+    : "";
 
 const configuredFileBase =
-  viteEnv.VITE_FILE_BASE ? String(viteEnv.VITE_FILE_BASE) : "";
+  viteEnv.VITE_FILE_BASE
+    ? trimTrailingSlash(String(viteEnv.VITE_FILE_BASE))
+    : configuredApiRoot;
 
 export const API_BASE = configuredApiBase
   ? configuredApiBase

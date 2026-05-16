@@ -18,6 +18,7 @@ const { startUploadCleanup } = require("./services/uploadCleanup");
 const app = express();
 const frontendDistPath = path.join(__dirname, "..", "frontend", "dist");
 const hasBuiltFrontend = fs.existsSync(path.join(frontendDistPath, "index.html"));
+const PORT = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
@@ -45,14 +46,8 @@ if (hasBuiltFrontend) {
   });
 }
 
-const cors = require("cors");
-
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://mod-check-list.vercel.app"
-  ],
-  credentials: true
-}));
-
 startUploadCleanup();
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Backend running on http://0.0.0.0:${PORT}`);
+});
