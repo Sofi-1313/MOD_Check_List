@@ -14,6 +14,11 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, "");
 }
 
+function withApiPath(value: string) {
+  const trimmed = trimTrailingSlash(value);
+  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+}
+
 const configuredApiRoot = viteEnv.VITE_API_URL
   ? trimTrailingSlash(String(viteEnv.VITE_API_URL))
   : "";
@@ -21,7 +26,7 @@ const configuredApiRoot = viteEnv.VITE_API_URL
 const configuredApiBase = viteEnv.VITE_API_BASE
   ? trimTrailingSlash(String(viteEnv.VITE_API_BASE))
   : configuredApiRoot
-    ? `${configuredApiRoot}/api`
+    ? withApiPath(configuredApiRoot)
     : "";
 
 const configuredFileBase =
@@ -46,6 +51,22 @@ function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+async function readResponseData(res: Response) {
+  const text = await res.text().catch(() => "");
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text) as { message?: string };
+  } catch {
+    return { message: text.slice(0, 200) };
+  }
+}
+
+function requestError(method: string, path: string, res: Response, data: { message?: string }) {
+  const detail = data.message ? `: ${data.message}` : "";
+  return new Error(`${method} ${path} failed (${res.status} ${res.statusText})${detail}`);
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: {
@@ -54,10 +75,10 @@ export async function apiGet<T>(path: string): Promise<T> {
     },
   });
 
-  const data = await res.json().catch(() => ({}));
+  const data = await readResponseData(res);
 
   if (!res.ok) {
-    throw new Error((data as { message?: string }).message || `GET ${path} failed`);
+    throw requestError("GET", path, res, data);
   }
 
   return data as T;
@@ -73,10 +94,10 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
 
-  const data = await res.json().catch(() => ({}));
+  const data = await readResponseData(res);
 
   if (!res.ok) {
-    throw new Error((data as { message?: string }).message || `POST ${path} failed`);
+    throw requestError("POST", path, res, data);
   }
 
   return data as T;
@@ -92,10 +113,10 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
 
-  const data = await res.json().catch(() => ({}));
+  const data = await readResponseData(res);
 
   if (!res.ok) {
-    throw new Error((data as { message?: string }).message || `PUT ${path} failed`);
+    throw requestError("PUT", path, res, data);
   }
 
   return data as T;
@@ -110,10 +131,10 @@ export async function apiDelete<T>(path: string): Promise<T> {
     },
   });
 
-  const data = await res.json().catch(() => ({}));
+  const data = await readResponseData(res);
 
   if (!res.ok) {
-    throw new Error((data as { message?: string }).message || `DELETE ${path} failed`);
+    throw requestError("DELETE", path, res, data);
   }
 
   return data as T;
@@ -133,10 +154,10 @@ export async function uploadPhotos(files: FileList | null): Promise<string[]> {
     body: formData,
   });
 
-  const data = await res.json().catch(() => ({}));
+  const data = await readResponseData(res);
 
   if (!res.ok) {
-    throw new Error((data as { message?: string }).message || "Photo upload failed");
+    throw requestError("POST", "/uploads", res, data);
   }
 
   return ((data as { files?: string[] }).files || []);

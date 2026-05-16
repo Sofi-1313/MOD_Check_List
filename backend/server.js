@@ -34,6 +34,14 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/ai", aiActionPlanRoutes);
 
+app.use("/auth", authRoutes);
+app.use("/users", userRoutes);
+app.use("/checklists", checklistRoutes);
+app.use("/assignments", assignmentRoutes);
+app.use("/drafts", draftRoutes);
+app.use("/reports", reportRoutes);
+app.use("/ai", aiActionPlanRoutes);
+
 if (hasBuiltFrontend) {
   app.use(express.static(frontendDistPath));
 
