@@ -14,24 +14,32 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, "");
 }
 
+function cleanEnvUrl(value: string) {
+  return value
+    .trim()
+    .replace(/^VITE_API_(?:URL|BASE)=/i, "")
+    .replace(/^https:\/(?!\/)/i, "https://")
+    .replace(/^http:\/(?!\/)/i, "http://");
+}
+
 function withApiPath(value: string) {
   const trimmed = trimTrailingSlash(value);
   return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
 }
 
 const configuredApiRoot = viteEnv.VITE_API_URL
-  ? trimTrailingSlash(String(viteEnv.VITE_API_URL))
+  ? trimTrailingSlash(cleanEnvUrl(String(viteEnv.VITE_API_URL)))
   : "";
 
 const configuredApiBase = viteEnv.VITE_API_BASE
-  ? trimTrailingSlash(String(viteEnv.VITE_API_BASE))
+  ? trimTrailingSlash(cleanEnvUrl(String(viteEnv.VITE_API_BASE)))
   : configuredApiRoot
     ? withApiPath(configuredApiRoot)
     : "";
 
 const configuredFileBase =
   viteEnv.VITE_FILE_BASE
-    ? trimTrailingSlash(String(viteEnv.VITE_FILE_BASE))
+    ? trimTrailingSlash(cleanEnvUrl(String(viteEnv.VITE_FILE_BASE)))
     : configuredApiRoot;
 
 export const API_BASE = configuredApiBase
