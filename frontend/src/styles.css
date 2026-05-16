@@ -1,0 +1,57 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  overflow-x: hidden;
+  background: #f5f7fa;
+}
+
+img,
+svg,
+canvas {
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+@media (max-width: 768px) {
+  .responsive-shell-top,
+  .responsive-report-top {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .responsive-shell-top > *,
+  .responsive-report-top > * {
+    width: 100%;
+  }
+
+  .responsive-shell-actions,
+  .responsive-report-actions,
+  .login-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .responsive-shell-actions button,
+  .responsive-report-actions button,
+  .login-actions button {
+    width: 100%;
+  }
+}
