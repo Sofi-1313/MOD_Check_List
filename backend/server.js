@@ -45,10 +45,14 @@ if (hasBuiltFrontend) {
   });
 }
 
-const PORT = process.env.PORT || 4000;
+const cors = require("cors");
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Backend running on http://0.0.0.0:${PORT}`);
-});
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://mod-check-list.vercel.app"
+  ],
+  credentials: true
+}));
 
 startUploadCleanup();
