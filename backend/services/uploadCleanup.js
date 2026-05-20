@@ -1,10 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 const db = require("../db");
+const { uploadDir } = require("../storagePaths");
 
 const DEFAULT_RETENTION_DAYS = 30;
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
-const uploadDir = path.join(__dirname, "..", "uploads");
 
 function getRetentionDays() {
   const configuredDays = Number(process.env.UPLOAD_RETENTION_DAYS);

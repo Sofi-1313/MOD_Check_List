@@ -14,6 +14,7 @@ const reportRoutes = require("./routes/reports");
 const uploadRoutes = require("./routes/uploads");
 const aiActionPlanRoutes = require("./routes/aiActionPlan");
 const { startUploadCleanup } = require("./services/uploadCleanup");
+const { uploadDir } = require("./storagePaths");
 
 const app = express();
 const frontendDistPath = path.join(__dirname, "..", "frontend", "dist");
@@ -22,7 +23,7 @@ const PORT = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(uploadDir));
 
 app.get("/", (_, res) => res.json({ ok: true, app: "MOD-Check-List-V1.9.2 backend" }));
 app.use("/api/auth", authRoutes);
