@@ -250,7 +250,7 @@ export default function WalkThroughPanel({ user, onSubmitted }: Props) {
   };
 
   return (
-    <div style={styles.section}>
+    <div className="walkthrough-panel" style={styles.section}>
       <h3 style={styles.title}>Walk-Through</h3>
       {message ? <div style={{ ...styles.section, background: "#e7f0e5" }}>{message}</div> : null}
 
@@ -304,7 +304,7 @@ export default function WalkThroughPanel({ user, onSubmitted }: Props) {
               </select>
 
               {item.answerType === "FORMAT1" ? (
-                <div style={{ ...styles.row, marginBottom: 8 }}>
+                <div className="walkthrough-choice-row" style={{ ...styles.row, marginBottom: 8 }}>
                   {(["YES", "NO", "N/A"] as const).map((option) => (
                     <button
                       key={option}
@@ -385,7 +385,7 @@ export default function WalkThroughPanel({ user, onSubmitted }: Props) {
                       }
                     />
                   ))}
-                  <div style={{ ...styles.row, gap: 8 }}>
+                  <div className="walkthrough-choice-row" style={{ ...styles.row, gap: 8 }}>
                     {item.options.filter(Boolean).map((option) => {
                       const checked = item.answer
                         .split(",")
@@ -443,7 +443,7 @@ export default function WalkThroughPanel({ user, onSubmitted }: Props) {
                 </div>
               ) : null}
 
-              <div style={{ ...styles.row, marginTop: 10 }}>
+              <div className="walkthrough-actions" style={{ ...styles.row, marginTop: 10 }}>
                 <button
                   type="button"
                   style={styles.secondaryButton}
@@ -468,7 +468,7 @@ export default function WalkThroughPanel({ user, onSubmitted }: Props) {
         </div>
       ))}
 
-      <div style={{ ...styles.row, marginTop: 12 }}>
+      <div className="walkthrough-actions" style={{ ...styles.row, marginTop: 12 }}>
         <button type="button" style={styles.secondaryButton} onClick={clearDraft}>
           Clear
         </button>

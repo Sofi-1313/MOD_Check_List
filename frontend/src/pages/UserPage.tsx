@@ -533,6 +533,7 @@ export default function UserPage({ user, onLogout }: Props) {
       ) : !activeAssignment || !activeChecklist ? (
         <>
           <div
+            className="responsive-tab-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
@@ -623,6 +624,7 @@ export default function UserPage({ user, onLogout }: Props) {
                   {checklists.map((checklist, index) => (
                     <div
                       key={checklist.id}
+                      className="responsive-compact-row"
                       style={{
                         display: "grid",
                         gridTemplateColumns: "minmax(0, 1fr) auto",
@@ -710,6 +712,7 @@ export default function UserPage({ user, onLogout }: Props) {
                   {reports.map((r, index) => (
                     <div
                       key={r.id}
+                      className="responsive-compact-row"
                       style={{
                         display: "grid",
                         gridTemplateColumns: "minmax(0, 1fr) auto",
@@ -738,7 +741,10 @@ export default function UserPage({ user, onLogout }: Props) {
                           By {r.completedByName} - {r.status} - {formatReportDate(r.completed_at)}
                         </div>
                       </div>
-                      <div style={{ ...styles.row, justifyContent: "flex-end", gap: 8 }}>
+                      <div
+                        className="responsive-compact-actions"
+                        style={{ ...styles.row, justifyContent: "flex-end", gap: 8 }}
+                      >
                         <button
                           style={styles.secondaryButton}
                           onClick={() => setSelectedReport(r)}
@@ -1085,7 +1091,7 @@ export default function UserPage({ user, onLogout }: Props) {
             </div>
           ) : null}
 
-          <div style={styles.row}>
+          <div className="checklist-actions" style={styles.row}>
             <button
               style={styles.secondaryButton}
               onClick={() => {

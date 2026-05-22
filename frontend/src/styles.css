@@ -29,6 +29,10 @@ textarea {
 }
 
 @media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+
   .responsive-shell-top,
   .responsive-report-top {
     flex-direction: column;
@@ -53,5 +57,45 @@ textarea {
   .responsive-report-actions button,
   .login-actions button {
     width: 100%;
+  }
+
+  .responsive-tab-grid,
+  .responsive-compact-row,
+  .responsive-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .responsive-compact-row {
+    align-items: stretch !important;
+  }
+
+  .responsive-compact-actions,
+  .checklist-actions,
+  .walkthrough-actions,
+  .walkthrough-choice-row {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .responsive-compact-actions button,
+  .responsive-compact-row > button,
+  .checklist-actions button,
+  .walkthrough-actions button,
+  .walkthrough-choice-row button,
+  .walkthrough-choice-row label {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .walkthrough-panel input,
+  .walkthrough-panel select,
+  .walkthrough-panel textarea {
+    width: 100% !important;
+  }
+
+  .walkthrough-panel input[type="file"] {
+    max-width: 100%;
   }
 }
