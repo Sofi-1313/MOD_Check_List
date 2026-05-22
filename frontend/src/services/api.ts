@@ -75,6 +75,14 @@ function requestError(method: string, path: string, res: Response, data: { messa
   return new Error(`${method} ${path} failed (${res.status} ${res.statusText})${detail}`);
 }
 
+function handleUnauthorized(res: Response, data: { message?: string }) {
+  if (res.status !== 401) return;
+
+  localStorage.removeItem("mod_token");
+  localStorage.removeItem("mod_session");
+  data.message = "Session expired or invalid. Please log in again.";
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: {
@@ -86,6 +94,7 @@ export async function apiGet<T>(path: string): Promise<T> {
   const data = await readResponseData(res);
 
   if (!res.ok) {
+    handleUnauthorized(res, data);
     throw requestError("GET", path, res, data);
   }
 
@@ -105,6 +114,7 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   const data = await readResponseData(res);
 
   if (!res.ok) {
+    handleUnauthorized(res, data);
     throw requestError("POST", path, res, data);
   }
 
@@ -124,6 +134,7 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
   const data = await readResponseData(res);
 
   if (!res.ok) {
+    handleUnauthorized(res, data);
     throw requestError("PUT", path, res, data);
   }
 
@@ -142,6 +153,7 @@ export async function apiDelete<T>(path: string): Promise<T> {
   const data = await readResponseData(res);
 
   if (!res.ok) {
+    handleUnauthorized(res, data);
     throw requestError("DELETE", path, res, data);
   }
 
@@ -165,6 +177,7 @@ export async function uploadPhotos(files: FileList | null): Promise<string[]> {
   const data = await readResponseData(res);
 
   if (!res.ok) {
+    handleUnauthorized(res, data);
     throw requestError("POST", "/uploads", res, data);
   }
 
