@@ -104,6 +104,119 @@ router.post("/", authRequired, (req, res) => {
   });
 });
 
+router.post("/walkthrough", authRequired, (req, res) => {
+  const { title, sections = [] } = req.body || {};
+
+  const cleanTitle = String(title || "").trim();
+  const cleanSections = Array.isArray(sections)
+    ? sections
+        .map((section) => ({
+          title: String(section.title || "").trim(),
+          items: Array.isArray(section.items) ? section.items : [],
+        }))
+        .filter((section) => section.title && section.items.length > 0)
+    : [];
+
+  if (!cleanTitle || cleanSections.length === 0) {
+    return res.status(400).json({
+      message: "Title and at least one section are required",
+    });
+  }
+
+  const createWalkthroughReport = db.transaction(() => {
+    const checklistResult = db
+      .prepare(
+        "INSERT INTO checklists (title, image_path, created_at, is_walkthrough) VALUES (?, ?, ?, ?)"
+      )
+      .run(cleanTitle, "", new Date().toISOString(), 1);
+
+    const checklistId = checklistResult.lastInsertRowid;
+
+    const assignmentResult = db
+      .prepare(
+        `INSERT INTO assignments (checklist_id, assigned_to_user_id, assigned_by_user_id, assigned_at, status)
+         VALUES (?, ?, ?, ?, ?)`
+      )
+      .run(checklistId, req.user.id, req.user.id, new Date().toISOString(), "completed");
+
+    const assignmentId = assignmentResult.lastInsertRowid;
+
+    const reportResult = db
+      .prepare(
+        `INSERT INTO reports (assignment_id, completed_by_user_id, completed_at, status)
+         VALUES (?, ?, ?, ?)`
+      )
+      .run(assignmentId, req.user.id, new Date().toISOString(), "Completed");
+
+    const reportId = reportResult.lastInsertRowid;
+
+    const insertSection = db.prepare(`
+      INSERT INTO checklist_sections (checklist_id, title, sort_order)
+      VALUES (?, ?, ?)
+    `);
+
+    const insertChecklistItem = db.prepare(`
+      INSERT INTO checklist_items (checklist_id, section_id, question, answer_type, options_json, sort_order)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+
+    const insertReportItem = db.prepare(`
+      INSERT INTO report_items (report_id, checklist_item_id, question, answer, answer_type, comment, section_title)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const insertPhoto = db.prepare(`
+      INSERT INTO report_photos (report_item_id, file_path)
+      VALUES (?, ?)
+    `);
+
+    cleanSections.forEach((section, sectionIndex) => {
+      const sectionResult = insertSection.run(checklistId, section.title, sectionIndex + 1);
+      const sectionId = sectionResult.lastInsertRowid;
+
+      section.items
+        .map((item) => ({
+          question: String(item.question || "").trim(),
+          answerType: String(item.answerType || item.answer_type || "FORMAT1"),
+          options: Array.isArray(item.options) ? item.options : [],
+          answer: String(item.answer || "").trim(),
+          comment: String(item.comment || "").trim(),
+          photos: Array.isArray(item.photos) ? item.photos : [],
+        }))
+        .filter((item) => item.question)
+        .forEach((item, itemIndex) => {
+          const checklistItemResult = insertChecklistItem.run(
+            checklistId,
+            sectionId,
+            item.question,
+            item.answerType,
+            JSON.stringify(item.options),
+            itemIndex + 1
+          );
+
+          const reportItemResult = insertReportItem.run(
+            reportId,
+            checklistItemResult.lastInsertRowid,
+            item.question,
+            item.answer,
+            item.answerType,
+            item.comment,
+            section.title
+          );
+
+          item.photos.forEach((photo) => {
+            insertPhoto.run(reportItemResult.lastInsertRowid, photo);
+          });
+        });
+    });
+
+    return { reportId };
+  });
+
+  const result = createWalkthroughReport();
+  res.json({ success: true, reportId: result.reportId });
+});
+
 router.delete("/:id", authRequired, adminOnly, (req, res) => {
   const reportId = Number(req.params.id);
 

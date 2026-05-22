@@ -4,6 +4,7 @@ import { AnswerType, Assignment, Checklist, Report, User } from "../types";
 import { styles } from "../styles/appStyles";
 import DashboardShell from "../components/DashboardShell";
 import ReportDetail from "../components/ReportDetail";
+import WalkThroughPanel from "../components/WalkThroughPanel";
 import { createAssignment, getAssignments } from "../services/assignmentService";
 import {
   createChecklist,
@@ -35,7 +36,7 @@ type QuestionForm = {
   options: string[];
 };
 
-type AdminSectionKey = "templates" | "assignments" | "users" | "reports";
+type AdminSectionKey = "templates" | "assignments" | "users" | "walkthrough" | "reports";
 
 const ANSWER_TYPE_LABELS: Record<AnswerType, string> = {
   FORMAT1: "Yes / No / N/A",
@@ -64,6 +65,11 @@ const ADMIN_SECTIONS: Array<{
     key: "users",
     label: "User Management",
     description: "Approve, create, and edit users",
+  },
+  {
+    key: "walkthrough",
+    label: "Walk-Through",
+    description: "Run an on-the-go inspection",
   },
   {
     key: "reports",
@@ -157,6 +163,45 @@ function mapReportToPdfPayload(report: Report) {
   };
 }
 
+function formatAdminDate(value?: string) {
+  if (!value) return "-";
+
+  try {
+    return new Date(value).toLocaleString("tr-TR");
+  } catch {
+    return value;
+  }
+}
+
+const compactListStyle: React.CSSProperties = {
+  border: "1px solid #e4d8c7",
+  borderRadius: 10,
+  overflow: "hidden",
+  background: "#fffaf2",
+};
+
+function compactRowStyle(index: number, expanded: boolean): React.CSSProperties {
+  return {
+    borderBottom: "1px solid #e4d8c7",
+    background: expanded ? "#f0eadf" : index % 2 === 0 ? "#fffaf2" : "#fbf6ec",
+  };
+}
+
+const compactRowHeaderStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gap: 10,
+  alignItems: "center",
+  padding: "10px 12px",
+  cursor: "pointer",
+};
+
+const compactRowActionsStyle: React.CSSProperties = {
+  borderTop: "1px solid #e4d8c7",
+  padding: "10px 12px",
+  background: "#fffdf8",
+};
+
 export default function AdminPage({ user, onLogout }: Props) {
   const [activeAdminPage, setActiveAdminPage] = useState<AdminSectionKey>("templates");
   const [users, setUsers] = useState<User[]>([]);
@@ -164,6 +209,9 @@ export default function AdminPage({ user, onLogout }: Props) {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [expandedReportId, setExpandedReportId] = useState<number | null>(null);
+  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
+  const [expandedAssignmentId, setExpandedAssignmentId] = useState<number | null>(null);
 
   const [title, setTitle] = useState("");
   const [templateImagePath, setTemplateImagePath] = useState("");
@@ -696,6 +744,7 @@ export default function AdminPage({ user, onLogout }: Props) {
   };
 
   const startEditUser = (targetUser: User) => {
+    setExpandedUserId(targetUser.id);
     setEditingUserId(targetUser.id);
     setEditUsername(targetUser.username);
     setEditPassword("");
@@ -919,19 +968,19 @@ export default function AdminPage({ user, onLogout }: Props) {
                     setError("");
                   }}
                   style={{
-                    border: isActive ? "2px solid #2563eb" : "1px solid #e5e7eb",
+                    border: isActive ? "2px solid #3f6f58" : "1px solid #e4d8c7",
                     borderRadius: 10,
-                    background: isActive ? "#eff6ff" : "#fff",
-                    color: "#111827",
+                    background: isActive ? "#e7f0e5" : "#fffaf2",
+                    color: "#2f2a24",
                     cursor: "pointer",
                     padding: "12px 14px",
                     textAlign: "left",
                     minHeight: 74,
-                    boxShadow: isActive ? "0 2px 8px rgba(37,99,235,0.12)" : "none",
+                    boxShadow: isActive ? "0 2px 8px rgba(63,111,88,0.14)" : "none",
                   }}
                 >
                   <div style={{ fontWeight: 800, marginBottom: 4 }}>{section.label}</div>
-                  <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.3 }}>
+                  <div style={{ fontSize: 12, color: "#776b5d", lineHeight: 1.3 }}>
                     {section.description}
                   </div>
                 </button>
@@ -965,7 +1014,7 @@ export default function AdminPage({ user, onLogout }: Props) {
               onChange={(e) => setTitle(e.target.value)}
             />
 
-            <div style={{ ...styles.section, background: "#fff", marginTop: 0, marginBottom: 12 }}>
+            <div style={{ ...styles.section, background: "#fffaf2", marginTop: 0, marginBottom: 12 }}>
               <label style={{ display: "block", fontWeight: 700, marginBottom: 8 }}>
                 Import Questions from Excel
               </label>
@@ -982,7 +1031,7 @@ export default function AdminPage({ user, onLogout }: Props) {
               </div>
             </div>
 
-            <div style={{ ...styles.section, background: "#fff", marginTop: 0, marginBottom: 12 }}>
+            <div style={{ ...styles.section, background: "#fffaf2", marginTop: 0, marginBottom: 12 }}>
               <label style={{ display: "block", fontWeight: 700, marginBottom: 8 }}>
                 Template Image
               </label>
@@ -1006,7 +1055,7 @@ export default function AdminPage({ user, onLogout }: Props) {
                       height: "auto",
                       objectFit: "contain",
                       borderRadius: 10,
-                      border: "1px solid #e5e7eb",
+                      border: "1px solid #e4d8c7",
                       display: "block",
                     }}
                   />
@@ -1022,7 +1071,7 @@ export default function AdminPage({ user, onLogout }: Props) {
             </div>
 
             {sections.map((section, sectionIndex) => (
-              <div key={sectionIndex} style={{ ...styles.section, background: "#fff" }}>
+              <div key={sectionIndex} style={{ ...styles.section, background: "#fffaf2" }}>
                 <div style={{ ...styles.row, marginBottom: 10 }}>
                   <button
                     style={styles.secondaryButton}
@@ -1117,7 +1166,7 @@ export default function AdminPage({ user, onLogout }: Props) {
                       </select>
 
                       {["MULTIPLE_CHOICE", "RADIO_BUTTON"].includes(item.answerType) ? (
-                        <div style={{ ...styles.section, marginTop: 0, background: "#f9fafb" }}>
+                        <div style={{ ...styles.section, marginTop: 0, background: "#fbf6ec" }}>
                           <div style={{ ...styles.small, marginBottom: 8 }}>
                             Answer options
                           </div>
@@ -1236,7 +1285,7 @@ export default function AdminPage({ user, onLogout }: Props) {
                         height: "auto",
                         objectFit: "contain",
                         borderRadius: 10,
-                        border: "1px solid #e5e7eb",
+                        border: "1px solid #e4d8c7",
                         marginBottom: 10,
                         display: "block",
                       }}
@@ -1330,17 +1379,100 @@ export default function AdminPage({ user, onLogout }: Props) {
               </button>
             </div>
 
-            {assignments.map((a) => (
-              <div key={a.id} style={styles.section}>
-                <strong>{a.checklistTitle}</strong>
-                <br />
-                Assigned To: {a.assignedToName}
-                <br />
-                Assigned By: {a.assignedByName}
-                <br />
-                Status: {a.status}
+            {assignments.length === 0 ? (
+              <div style={styles.small}>No assignments found.</div>
+            ) : (
+              <div style={compactListStyle}>
+                {assignments.map((a, index) => {
+                  const isExpanded = expandedAssignmentId === a.id;
+
+                  return (
+                    <div
+                      key={a.id}
+                      style={{
+                        ...compactRowStyle(index, isExpanded),
+                        borderBottom:
+                          index === assignments.length - 1 ? "none" : "1px solid #e4d8c7",
+                      }}
+                    >
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() =>
+                          setExpandedAssignmentId((current) =>
+                            current === a.id ? null : a.id
+                          )
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setExpandedAssignmentId((current) =>
+                              current === a.id ? null : a.id
+                            );
+                          }
+                        }}
+                        style={compactRowHeaderStyle}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              color: "#2f2a24",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                            title={a.checklistTitle}
+                          >
+                            {a.checklistTitle}
+                          </div>
+                          <div style={styles.small}>
+                            Assigned to {a.assignedToName} - {a.status}
+                          </div>
+                        </div>
+                        <div style={{ ...styles.small, color: "#5f5448", fontWeight: 600 }}>
+                          {isExpanded ? "Close" : "Open"}
+                        </div>
+                      </div>
+
+                      {isExpanded ? (
+                        <div
+                          style={compactRowActionsStyle}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                              gap: 10,
+                            }}
+                          >
+                            <div>
+                              <div style={styles.small}>Assigned To</div>
+                              <div style={{ fontWeight: 600 }}>{a.assignedToName}</div>
+                            </div>
+                            <div>
+                              <div style={styles.small}>Assigned By</div>
+                              <div style={{ fontWeight: 600 }}>{a.assignedByName}</div>
+                            </div>
+                            <div>
+                              <div style={styles.small}>Assigned At</div>
+                              <div style={{ fontWeight: 600 }}>
+                                {formatAdminDate(a.assigned_at)}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={styles.small}>Status</div>
+                              <div style={{ fontWeight: 600 }}>{a.status}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
-            ))}
+            )}
           </div>
           ) : null}
 
@@ -1349,7 +1481,7 @@ export default function AdminPage({ user, onLogout }: Props) {
             <h3 style={styles.title}>User Management</h3>
 
             {pendingUsers.length > 0 ? (
-              <div style={{ ...styles.section, background: "#fff7ed", marginBottom: 14 }}>
+              <div style={{ ...styles.section, background: "#f8ecd8", marginBottom: 14 }}>
                 <h4 style={{ ...styles.title, marginBottom: 10 }}>Pending Approval</h4>
 
                 {pendingUsers.map((u) => (
@@ -1458,78 +1590,136 @@ export default function AdminPage({ user, onLogout }: Props) {
             {approvedUsers.length === 0 ? (
               <div style={styles.small}>No users found.</div>
             ) : (
-              approvedUsers.map((u) => (
-                <div key={u.id} style={styles.section}>
-                  {editingUserId === u.id ? (
-                    <>
-                      <div style={{ ...styles.row, marginBottom: 10 }}>
-                        <input
-                          style={styles.input}
-                          placeholder="Username"
-                          value={editUsername}
-                          onChange={(e) => setEditUsername(e.target.value)}
-                        />
-                        <input
-                          style={styles.input}
-                          placeholder="New Password (optional)"
-                          type="password"
-                          value={editPassword}
-                          onChange={(e) => setEditPassword(e.target.value)}
-                        />
-                        <input
-                          style={styles.input}
-                          placeholder="Full Name"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                        />
-                        <select
-                          style={styles.input}
-                          value={editRole}
-                          onChange={(e) => setEditRole(e.target.value as "admin" | "user")}
-                        >
-                          <option value="user">user</option>
-                          <option value="admin">admin</option>
-                        </select>
+              <div style={compactListStyle}>
+                {approvedUsers.map((u, index) => {
+                  const isExpanded = expandedUserId === u.id || editingUserId === u.id;
+
+                  return (
+                    <div
+                      key={u.id}
+                      style={{
+                        ...compactRowStyle(index, isExpanded),
+                        borderBottom:
+                          index === approvedUsers.length - 1 ? "none" : "1px solid #e4d8c7",
+                      }}
+                    >
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() =>
+                          setExpandedUserId((current) => (current === u.id ? null : u.id))
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setExpandedUserId((current) => (current === u.id ? null : u.id));
+                          }
+                        }}
+                        style={compactRowHeaderStyle}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              color: "#2f2a24",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                            title={u.name}
+                          >
+                            {u.name}
+                          </div>
+                          <div style={styles.small}>
+                            {u.username} - {u.role} - {u.active === false ? "Inactive" : "Active"}
+                          </div>
+                        </div>
+                        <div style={{ ...styles.small, color: "#5f5448", fontWeight: 600 }}>
+                          {isExpanded ? "Close" : "Open"}
+                        </div>
                       </div>
-                      <div style={styles.row}>
-                        <button style={styles.secondaryButton} onClick={cancelEditUser}>
-                          Cancel
-                        </button>
-                        <button style={styles.button} onClick={handleUpdateUser}>
-                          Save Changes
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <strong>{u.name}</strong> ({u.username}) - {u.role}
-                      <br />
-                      <div style={{ ...styles.row, marginTop: 10 }}>
-                        <button
-                          style={styles.secondaryButton}
-                          onClick={() => startEditUser(u)}
+
+                      {isExpanded ? (
+                        <div
+                          style={compactRowActionsStyle}
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          Edit User
-                        </button>
-                        <button
-                          style={styles.button}
-                          onClick={() => handleDeleteUser(u.id)}
-                          disabled={u.id === user.id}
-                        >
-                          Delete User
-                        </button>
-                        {u.id === user.id ? (
-                          <span style={{ fontSize: 12, color: "#6b7280" }}>
-                            You cannot delete your own account
-                          </span>
-                        ) : null}
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))
+                          {editingUserId === u.id ? (
+                            <>
+                              <div style={{ ...styles.row, marginBottom: 10 }}>
+                                <input
+                                  style={styles.input}
+                                  placeholder="Username"
+                                  value={editUsername}
+                                  onChange={(e) => setEditUsername(e.target.value)}
+                                />
+                                <input
+                                  style={styles.input}
+                                  placeholder="New Password (optional)"
+                                  type="password"
+                                  value={editPassword}
+                                  onChange={(e) => setEditPassword(e.target.value)}
+                                />
+                                <input
+                                  style={styles.input}
+                                  placeholder="Full Name"
+                                  value={editName}
+                                  onChange={(e) => setEditName(e.target.value)}
+                                />
+                                <select
+                                  style={styles.input}
+                                  value={editRole}
+                                  onChange={(e) =>
+                                    setEditRole(e.target.value as "admin" | "user")
+                                  }
+                                >
+                                  <option value="user">user</option>
+                                  <option value="admin">admin</option>
+                                </select>
+                              </div>
+                              <div style={styles.row}>
+                                <button style={styles.secondaryButton} onClick={cancelEditUser}>
+                                  Cancel
+                                </button>
+                                <button style={styles.button} onClick={handleUpdateUser}>
+                                  Save Changes
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <div style={styles.row}>
+                              <button
+                                style={styles.secondaryButton}
+                                onClick={() => startEditUser(u)}
+                              >
+                                Edit User
+                              </button>
+                              <button
+                                style={styles.button}
+                                onClick={() => handleDeleteUser(u.id)}
+                                disabled={u.id === user.id}
+                              >
+                                Delete User
+                              </button>
+                              {u.id === user.id ? (
+                                <span style={{ fontSize: 12, color: "#6b7280" }}>
+                                  You cannot delete your own account
+                                </span>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
+          ) : null}
+
+          {activeAdminPage === "walkthrough" ? (
+            <WalkThroughPanel user={user} onSubmitted={load} />
           ) : null}
 
           {activeAdminPage === "reports" ? (
@@ -1539,48 +1729,102 @@ export default function AdminPage({ user, onLogout }: Props) {
             {reports.length === 0 ? (
               <div style={styles.small}>No reports yet.</div>
             ) : (
-              reports.map((r) => (
-                <div key={r.id} style={styles.section}>
-                  <strong>{r.checklistTitle}</strong>
-                  <br />
-                  Completed By: {r.completedByName}
-                  <br />
-                  Assigned To: {r.assignedToName}
-                  <br />
-                  Status: {r.status}
-                  <br />
-                  <div style={{ ...styles.row, marginTop: 10 }}>
-                    <button
-                      style={styles.secondaryButton}
-                      onClick={() => setSelectedReport(r)}
-                    >
-                      View Detail
-                    </button>
+              <div style={compactListStyle}>
+                {reports.map((r, index) => {
+                  const isExpanded = expandedReportId === r.id;
 
-                    <button
-                      style={styles.button}
-                      onClick={() => handleDownloadPdf(r)}
+                  return (
+                    <div
+                      key={r.id}
+                      style={{
+                        ...compactRowStyle(index, isExpanded),
+                        borderBottom:
+                          index === reports.length - 1 ? "none" : "1px solid #e4d8c7",
+                      }}
                     >
-                      Download PDF
-                    </button>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() =>
+                          setExpandedReportId((current) => (current === r.id ? null : r.id))
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setExpandedReportId((current) =>
+                              current === r.id ? null : r.id
+                            );
+                          }
+                        }}
+                        style={compactRowHeaderStyle}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              color: "#2f2a24",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                            title={r.checklistTitle}
+                          >
+                            {r.checklistTitle}
+                          </div>
+                          <div style={styles.small}>
+                            Completed by {r.completedByName} - Assigned to{" "}
+                            {r.assignedToName} - {r.status} -{" "}
+                            {formatAdminDate(r.completed_at)}
+                          </div>
+                        </div>
+                        <div style={{ ...styles.small, color: "#5f5448", fontWeight: 600 }}>
+                          {isExpanded ? "Close" : "Open"}
+                        </div>
+                      </div>
 
-                    <button
-                      style={styles.button}
-                      onClick={() => handleDownloadActionPlanExcel(r)}
-                      disabled={actionPlanReportId === r.id}
-                    >
-                      {actionPlanReportId === r.id ? "Preparing Excel..." : "AI Action Plan Excel"}
-                    </button>
+                      {isExpanded ? (
+                        <div
+                          style={compactRowActionsStyle}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div style={styles.row}>
+                            <button
+                              style={styles.secondaryButton}
+                              onClick={() => setSelectedReport(r)}
+                            >
+                              View Detail
+                            </button>
 
-                    <button
-                      style={styles.button}
-                      onClick={() => handleDeleteReport(r.id)}
-                    >
-                      Delete Report
-                    </button>
-                  </div>
-                </div>
-              ))
+                            <button
+                              style={styles.button}
+                              onClick={() => handleDownloadPdf(r)}
+                            >
+                              Download PDF
+                            </button>
+
+                            <button
+                              style={styles.button}
+                              onClick={() => handleDownloadActionPlanExcel(r)}
+                              disabled={actionPlanReportId === r.id}
+                            >
+                              {actionPlanReportId === r.id
+                                ? "Preparing Excel..."
+                                : "AI Action Plan Excel"}
+                            </button>
+
+                            <button
+                              style={styles.button}
+                              onClick={() => handleDeleteReport(r.id)}
+                            >
+                              Delete Report
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
           ) : null}
