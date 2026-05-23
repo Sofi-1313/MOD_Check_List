@@ -104,6 +104,9 @@ export default function UserPage({ user, onLogout }: Props) {
   const [reports, setReports] = useState<Report[]>([]);
   const [activeAssignmentId, setActiveAssignmentId] = useState<number | null>(null);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [expandedAssignmentId, setExpandedAssignmentId] = useState<number | null>(null);
+  const [expandedChecklistId, setExpandedChecklistId] = useState<number | null>(null);
+  const [expandedReportId, setExpandedReportId] = useState<number | null>(null);
   const [form, setForm] = useState<Record<number, FillItem>>({});
   const [message, setMessage] = useState("");
   const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
@@ -488,6 +491,9 @@ export default function UserPage({ user, onLogout }: Props) {
     await generateChecklistPdf(pdfPayload as any);
   };
 
+  const getChecklistQuestionCount = (checklist: Checklist) =>
+    checklist.sections.reduce((total, section) => total + section.items.length, 0);
+
   return (
     <DashboardShell user={user} onLogout={onLogout}>
       {message ? (
@@ -508,55 +514,188 @@ export default function UserPage({ user, onLogout }: Props) {
             {assignments.filter((a) => a.status === "assigned").length === 0 ? (
               <div style={styles.small}>No active assignments.</div>
             ) : (
-              assignments
-                .filter((a) => a.status === "assigned")
-                .map((a) => (
-                  <div key={a.id} style={styles.section}>
-                    <strong>{a.checklistTitle}</strong>
-                    <br />
-                    Assigned By: {a.assignedByName}
-                    <br />
-                    <button
-                      style={styles.button}
-                      onClick={() => openAssignment(a)}
-                    >
-                      Open Checklist
-                    </button>
-                  </div>
-                ))
+              <div style={styles.compactList}>
+                {assignments
+                  .filter((a) => a.status === "assigned")
+                  .map((a) => {
+                    const isExpanded = expandedAssignmentId === a.id;
+
+                    return (
+                      <div key={a.id} style={styles.compactRow}>
+                        <button
+                          type="button"
+                          style={styles.compactRowHeader}
+                          onClick={() =>
+                            setExpandedAssignmentId(isExpanded ? null : a.id)
+                          }
+                        >
+                          <span>
+                            <span style={styles.compactRowTitle}>
+                              {a.checklistTitle}
+                            </span>
+                            <span style={styles.compactRowMeta}>
+                              Assigned By: {a.assignedByName}
+                            </span>
+                          </span>
+                          <span style={styles.compactRowChevron}>
+                            {isExpanded ? "-" : "+"}
+                          </span>
+                        </button>
+
+                        {isExpanded ? (
+                          <div style={styles.compactRowBody}>
+                            <div style={styles.small}>
+                              Status: {a.status} - Assigned at:{" "}
+                              {new Date(a.assigned_at).toLocaleDateString()}
+                            </div>
+                            <div style={styles.compactActions}>
+                              <button
+                                style={styles.button}
+                                onClick={() => openAssignment(a)}
+                              >
+                                Open Checklist
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+              </div>
             )}
           </div>
 
           <div style={styles.section}>
-            <h3 style={styles.title}>My Reports</h3>
+            <h3 style={styles.title}>Templates</h3>
+
+            {checklists.length === 0 ? (
+              <div style={styles.small}>No templates available.</div>
+            ) : (
+              <div style={styles.compactList}>
+                {checklists.map((checklist) => {
+                  const isExpanded = expandedChecklistId === checklist.id;
+                  const questionCount = getChecklistQuestionCount(checklist);
+
+                  return (
+                    <div key={checklist.id} style={styles.compactRow}>
+                      <button
+                        type="button"
+                        style={styles.compactRowHeader}
+                        onClick={() =>
+                          setExpandedChecklistId(isExpanded ? null : checklist.id)
+                        }
+                      >
+                        <span>
+                          <span style={styles.compactRowTitle}>
+                            {checklist.title}
+                          </span>
+                          <span style={styles.compactRowMeta}>
+                            {checklist.sections.length} section - {questionCount} questions
+                          </span>
+                        </span>
+                        <span style={styles.compactRowChevron}>
+                          {isExpanded ? "-" : "+"}
+                        </span>
+                      </button>
+
+                      {isExpanded ? (
+                        <div style={styles.compactRowBody}>
+                          {(checklist.image_path || checklist.imagePath) ? (
+                            <img
+                              src={(checklist.image_path || checklist.imagePath || "").startsWith("http") ? (checklist.image_path || checklist.imagePath) : `${FILE_BASE}${checklist.image_path || checklist.imagePath}`}
+                              alt={checklist.title}
+                              style={{
+                                width: "100%",
+                                maxWidth: 180,
+                                height: "auto",
+                                objectFit: "contain",
+                                borderRadius: 10,
+                                border: "1px solid #e5e7eb",
+                                marginBottom: 10,
+                                display: "block",
+                              }}
+                            />
+                          ) : null}
+
+                          <div style={styles.small}>
+                            Created: {new Date(checklist.created_at).toLocaleDateString()}
+                          </div>
+
+                          <div style={{ marginTop: 10 }}>
+                            {checklist.sections.map((section) => (
+                              <div key={section.id} style={{ marginBottom: 8 }}>
+                                <strong>{section.title}</strong>
+                                <div style={styles.small}>
+                                  {section.items.length} questions
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div style={styles.section}>
+            <h3 style={styles.title}>Completed Reports</h3>
 
             {reports.length === 0 ? (
               <div style={styles.small}>No reports yet.</div>
             ) : (
-              reports.map((r) => (
-                <div key={r.id} style={styles.section}>
-                  <strong>{r.checklistTitle}</strong>
-                  <br />
-                  Completed By: {r.completedByName}
-                  <br />
-                  Status: {r.status}
-                  <br />
-                  <div style={{ ...styles.row, marginTop: 10 }}>
-                    <button
-                      style={styles.secondaryButton}
-                      onClick={() => setSelectedReport(r)}
-                    >
-                      View Report
-                    </button>
-                    <button
-                      style={styles.button}
-                      onClick={() => handleDownloadPdf(r)}
-                    >
-                      Download PDF
-                    </button>
-                  </div>
-                </div>
-              ))
+              <div style={styles.compactList}>
+                {reports.map((r) => {
+                  const isExpanded = expandedReportId === r.id;
+
+                  return (
+                    <div key={r.id} style={styles.compactRow}>
+                      <button
+                        type="button"
+                        style={styles.compactRowHeader}
+                        onClick={() => setExpandedReportId(isExpanded ? null : r.id)}
+                      >
+                        <span>
+                          <span style={styles.compactRowTitle}>
+                            {r.checklistTitle}
+                          </span>
+                          <span style={styles.compactRowMeta}>
+                            Completed By: {r.completedByName}
+                          </span>
+                        </span>
+                        <span style={styles.compactRowChevron}>
+                          {isExpanded ? "-" : "+"}
+                        </span>
+                      </button>
+
+                      {isExpanded ? (
+                        <div style={styles.compactRowBody}>
+                          <div style={styles.small}>
+                            Status: {r.status} - Completed:{" "}
+                            {new Date(r.completed_at).toLocaleDateString()}
+                          </div>
+                          <div style={styles.compactActions}>
+                            <button
+                              style={styles.secondaryButton}
+                              onClick={() => setSelectedReport(r)}
+                            >
+                              View Report
+                            </button>
+                            <button
+                              style={styles.button}
+                              onClick={() => handleDownloadPdf(r)}
+                            >
+                              Download PDF
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </>
