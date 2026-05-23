@@ -4,4 +4,7 @@ backend/node_modules/
 frontend/dist/
 backend/uploads/
 backend/data/backups/
+backend/data/*.db-shm
+backend/data/*.db-wal
+backend/data/*.db-journal
 *.log
