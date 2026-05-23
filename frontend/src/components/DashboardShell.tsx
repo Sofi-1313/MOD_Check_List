@@ -12,10 +12,7 @@ export default function DashboardShell({ user, onLogout, children }: Props) {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <div
-          className="responsive-shell-top"
-          style={{ ...styles.row, justifyContent: "space-between" }}
-        >
+        <div style={{ ...styles.row, justifyContent: "space-between" }}>
           <div>
             <div style={styles.small}>Logged in as {user.name} ({user.role})</div>
           </div>

@@ -947,7 +947,6 @@ export default function AdminPage({ user, onLogout }: Props) {
       ) : (
         <>
           <div
-            className="responsive-tab-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
@@ -1397,7 +1396,6 @@ export default function AdminPage({ user, onLogout }: Props) {
                       }}
                     >
                       <div
-                        className="responsive-compact-row"
                         role="button"
                         tabIndex={0}
                         onClick={() =>
@@ -1443,7 +1441,6 @@ export default function AdminPage({ user, onLogout }: Props) {
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div
-                            className="responsive-detail-grid"
                             style={{
                               display: "grid",
                               gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
@@ -1607,7 +1604,6 @@ export default function AdminPage({ user, onLogout }: Props) {
                       }}
                     >
                       <div
-                        className="responsive-compact-row"
                         role="button"
                         tabIndex={0}
                         onClick={() =>
@@ -1650,7 +1646,7 @@ export default function AdminPage({ user, onLogout }: Props) {
                         >
                           {editingUserId === u.id ? (
                             <>
-                              <div className="responsive-compact-actions" style={{ ...styles.row, marginBottom: 10 }}>
+                              <div style={{ ...styles.row, marginBottom: 10 }}>
                                 <input
                                   style={styles.input}
                                   placeholder="Username"
@@ -1681,7 +1677,7 @@ export default function AdminPage({ user, onLogout }: Props) {
                                   <option value="admin">admin</option>
                                 </select>
                               </div>
-                              <div className="responsive-compact-actions" style={styles.row}>
+                              <div style={styles.row}>
                                 <button style={styles.secondaryButton} onClick={cancelEditUser}>
                                   Cancel
                                 </button>
@@ -1691,7 +1687,7 @@ export default function AdminPage({ user, onLogout }: Props) {
                               </div>
                             </>
                           ) : (
-                            <div className="responsive-compact-actions" style={styles.row}>
+                            <div style={styles.row}>
                               <button
                                 style={styles.secondaryButton}
                                 onClick={() => startEditUser(u)}
@@ -1747,7 +1743,6 @@ export default function AdminPage({ user, onLogout }: Props) {
                       }}
                     >
                       <div
-                        className="responsive-compact-row"
                         role="button"
                         tabIndex={0}
                         onClick={() =>
@@ -1792,7 +1787,7 @@ export default function AdminPage({ user, onLogout }: Props) {
                           style={compactRowActionsStyle}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <div className="responsive-compact-actions" style={styles.row}>
+                          <div style={styles.row}>
                             <button
                               style={styles.secondaryButton}
                               onClick={() => setSelectedReport(r)}
