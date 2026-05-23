@@ -2,6 +2,7 @@ const Database = require("better-sqlite3");
 const path = require("path");
 const fs = require("fs");
 const { dataDir } = require("./storagePaths");
+const { createDbBackup } = require("./services/dbBackup");
 
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
@@ -241,6 +242,12 @@ const hasChecklistImagePath = checklistColumns.some(
 const hasChecklistIsWalkthrough = checklistColumns.some(
   (column) => column.name === "is_walkthrough"
 );
+const hasChecklistDeletedAt = checklistColumns.some(
+  (column) => column.name === "deleted_at"
+);
+const hasChecklistDeletedByUserId = checklistColumns.some(
+  (column) => column.name === "deleted_by_user_id"
+);
 
 if (!hasChecklistImagePath) {
   db.exec(`ALTER TABLE checklists ADD COLUMN image_path TEXT;`);
@@ -248,6 +255,20 @@ if (!hasChecklistImagePath) {
 
 if (!hasChecklistIsWalkthrough) {
   db.exec(`ALTER TABLE checklists ADD COLUMN is_walkthrough INTEGER NOT NULL DEFAULT 0;`);
+}
+
+if (!hasChecklistDeletedAt) {
+  db.exec(`ALTER TABLE checklists ADD COLUMN deleted_at TEXT;`);
+}
+
+if (!hasChecklistDeletedByUserId) {
+  db.exec(`ALTER TABLE checklists ADD COLUMN deleted_by_user_id INTEGER;`);
+}
+
+try {
+  createDbBackup(db, "startup");
+} catch (err) {
+  console.warn(`Startup database backup failed: ${err.message}`);
 }
 
 module.exports = db;

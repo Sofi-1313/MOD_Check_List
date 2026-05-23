@@ -1,6 +1,7 @@
 const express = require("express");
 const db = require("../db");
 const { authRequired, adminOnly } = require("../middleware/auth");
+const { createDbBackup } = require("../services/dbBackup");
 
 const router = express.Router();
 
@@ -41,7 +42,54 @@ function mapDbItem(item) {
 
 router.get("/", authRequired, (req, res) => {
   const checklists = db
-    .prepare("SELECT * FROM checklists WHERE COALESCE(is_walkthrough, 0) = 0 ORDER BY id DESC")
+    .prepare(`
+      SELECT *
+      FROM checklists
+      WHERE COALESCE(is_walkthrough, 0) = 0
+        AND deleted_at IS NULL
+      ORDER BY id DESC
+    `)
+    .all();
+
+  const sectionStmt = db.prepare(`
+    SELECT * FROM checklist_sections
+    WHERE checklist_id = ?
+    ORDER BY sort_order
+  `);
+
+  const itemStmt = db.prepare(`
+    SELECT * FROM checklist_items
+    WHERE checklist_id = ? AND section_id = ?
+    ORDER BY sort_order
+  `);
+
+  const result = checklists.map((checklist) => {
+    const sections = sectionStmt.all(checklist.id).map((section) => ({
+      ...section,
+      items: itemStmt.all(checklist.id, section.id).map(mapDbItem),
+    }));
+
+    return {
+      ...checklist,
+      sections,
+    };
+  });
+
+  res.json(result);
+});
+
+router.get("/deleted", authRequired, adminOnly, (req, res) => {
+  const checklists = db
+    .prepare(`
+      SELECT
+        c.*,
+        u.name as deletedByName
+      FROM checklists c
+      LEFT JOIN users u ON c.deleted_by_user_id = u.id
+      WHERE COALESCE(c.is_walkthrough, 0) = 0
+        AND c.deleted_at IS NOT NULL
+      ORDER BY c.deleted_at DESC
+    `)
     .all();
 
   const sectionStmt = db.prepare(`
@@ -150,7 +198,7 @@ router.put("/:id", authRequired, adminOnly, (req, res) => {
   }
 
   const checklist = db
-    .prepare("SELECT id FROM checklists WHERE id = ?")
+    .prepare("SELECT id FROM checklists WHERE id = ? AND deleted_at IS NULL")
     .get(checklistId);
 
   if (!checklist) {
@@ -220,7 +268,46 @@ router.put("/:id", authRequired, adminOnly, (req, res) => {
   });
 });
 
-router.delete("/:id", authRequired, adminOnly, (req, res) => {
+router.put("/:id/restore", authRequired, adminOnly, async (req, res) => {
+  const checklistId = Number(req.params.id);
+
+  if (!checklistId) {
+    return res.status(400).json({
+      message: "Invalid checklist id",
+    });
+  }
+
+  const checklist = db
+    .prepare("SELECT id, title FROM checklists WHERE id = ? AND deleted_at IS NOT NULL")
+    .get(checklistId);
+
+  if (!checklist) {
+    return res.status(404).json({
+      message: "Deleted checklist not found",
+    });
+  }
+
+  try {
+    await createDbBackup(db, `restore_template_${checklistId}`);
+  } catch (err) {
+    return res.status(500).json({
+      message: `Database backup failed before restore: ${err.message}`,
+    });
+  }
+
+  db.prepare(`
+    UPDATE checklists
+    SET deleted_at = NULL,
+        deleted_by_user_id = NULL
+    WHERE id = ?
+  `).run(checklistId);
+
+  res.json({
+    success: true,
+  });
+});
+
+router.delete("/:id", authRequired, adminOnly, async (req, res) => {
   const checklistId = Number(req.params.id);
   const forceDelete = String(req.query.force || "").toLowerCase() === "true";
 
@@ -240,18 +327,15 @@ router.delete("/:id", authRequired, adminOnly, (req, res) => {
     });
   }
 
-  const assignmentCount = db
-    .prepare("SELECT COUNT(*) as count FROM assignments WHERE checklist_id = ?")
-    .get(checklistId).count;
-
-  if (assignmentCount > 0 && !forceDelete) {
-    return res.status(400).json({
-      message:
-        "This template cannot be deleted because assignments or reports are linked to it. Delete related completed reports first.",
-    });
-  }
-
   if (forceDelete) {
+    try {
+      await createDbBackup(db, `force_delete_template_${checklistId}`);
+    } catch (err) {
+      return res.status(500).json({
+        message: `Database backup failed before permanent delete: ${err.message}`,
+      });
+    }
+
     const assignmentIds = db
       .prepare("SELECT id FROM assignments WHERE checklist_id = ?")
       .all(checklistId)
@@ -317,12 +401,24 @@ router.delete("/:id", authRequired, adminOnly, (req, res) => {
     });
   }
 
-  db.prepare("DELETE FROM checklist_items WHERE checklist_id = ?").run(checklistId);
-  db.prepare("DELETE FROM checklist_sections WHERE checklist_id = ?").run(checklistId);
-  db.prepare("DELETE FROM checklists WHERE id = ?").run(checklistId);
+  try {
+    await createDbBackup(db, `soft_delete_template_${checklistId}`);
+  } catch (err) {
+    return res.status(500).json({
+      message: `Database backup failed before delete: ${err.message}`,
+    });
+  }
+
+  db.prepare(`
+    UPDATE checklists
+    SET deleted_at = ?,
+        deleted_by_user_id = ?
+    WHERE id = ?
+  `).run(new Date().toISOString(), req.user.id, checklistId);
 
   res.json({
     success: true,
+    softDeleted: true,
   });
 });
 

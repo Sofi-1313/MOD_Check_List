@@ -12,6 +12,8 @@ import {
   deleteChecklist,
   forceDeleteChecklist,
   getChecklists,
+  getDeletedChecklists,
+  restoreChecklist,
 } from "../services/checklistService";
 import { deleteReport, getReports } from "../services/reportService";
 import { createUser, deleteUser, getUsers, updateUser } from "../services/userService";
@@ -206,6 +208,7 @@ export default function AdminPage({ user, onLogout }: Props) {
   const [activeAdminPage, setActiveAdminPage] = useState<AdminSectionKey>("templates");
   const [users, setUsers] = useState<User[]>([]);
   const [checklists, setChecklists] = useState<Checklist[]>([]);
+  const [deletedChecklists, setDeletedChecklists] = useState<Checklist[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -250,15 +253,17 @@ export default function AdminPage({ user, onLogout }: Props) {
   const approvedUsers = users.filter((u) => u.approvalStatus !== "pending");
 
   const load = async () => {
-    const [u, c, a, r] = await Promise.all([
+    const [u, c, deleted, a, r] = await Promise.all([
       getUsers(),
       getChecklists(),
+      getDeletedChecklists(),
       getAssignments(),
       getReports(),
     ]);
 
     setUsers(u);
     setChecklists(c);
+    setDeletedChecklists(deleted);
     setAssignments(a);
     setReports(r);
     setPendingUserForms((prev) => {
@@ -848,7 +853,7 @@ export default function AdminPage({ user, onLogout }: Props) {
       if (editingId === checklistId) {
         resetTemplateForm();
       }
-      setMessage("Template deleted successfully.");
+      setMessage("Template moved to Recycle Bin.");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Template could not be deleted");
@@ -876,6 +881,19 @@ export default function AdminPage({ user, onLogout }: Props) {
       setError(
         err instanceof Error ? err.message : "Template could not be force deleted"
       );
+    }
+  };
+
+  const handleRestoreTemplate = async (checklistId: number) => {
+    setMessage("");
+    setError("");
+
+    try {
+      await restoreChecklist(checklistId);
+      setMessage("Template restored successfully.");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Template could not be restored");
     }
   };
 
@@ -1321,13 +1339,59 @@ export default function AdminPage({ user, onLogout }: Props) {
                       style={styles.button}
                       onClick={() => handleDeleteTemplate(c.id)}
                     >
-                      Delete Template
+                      Move to Recycle Bin
                     </button>
                     <button
                       style={{ ...styles.button, background: "#b91c1c" }}
                       onClick={() => handleForceDeleteTemplate(c.id)}
                     >
                       Force Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div style={styles.section}>
+            <h3 style={styles.title}>Recycle Bin</h3>
+            <div style={{ ...styles.small, marginBottom: 10 }}>
+              Deleted templates stay here until restored or permanently deleted.
+            </div>
+
+            {deletedChecklists.length === 0 ? (
+              <div style={styles.small}>Recycle Bin is empty.</div>
+            ) : (
+              deletedChecklists.map((c) => (
+                <div key={c.id} style={styles.section}>
+                  <strong>{c.title}</strong>
+                  <br />
+                  Sections: {Array.isArray(c.sections) ? c.sections.length : 0}
+                  <br />
+                  <div style={styles.small}>
+                    Deleted at {formatAdminDate(c.deleted_at || undefined)}
+                    {c.deletedByName ? ` by ${c.deletedByName}` : ""}
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    {Array.isArray(c.sections) &&
+                      c.sections.map((section) => (
+                        <div key={section.id} style={{ marginBottom: 6 }}>
+                          <strong>- {section.title}</strong> ({section.items.length} questions)
+                        </div>
+                      ))}
+                  </div>
+                  <div style={{ ...styles.row, marginTop: 10 }}>
+                    <button
+                      style={styles.secondaryButton}
+                      onClick={() => handleRestoreTemplate(c.id)}
+                    >
+                      Restore Template
+                    </button>
+                    <button
+                      style={{ ...styles.button, background: "#b91c1c" }}
+                      onClick={() => handleForceDeleteTemplate(c.id)}
+                    >
+                      Permanently Delete
                     </button>
                   </div>
                 </div>

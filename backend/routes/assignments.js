@@ -28,7 +28,7 @@ function createSelfAssignment(req, res, checklistId) {
   }
 
   const checklist = db
-    .prepare("SELECT id, title, image_path FROM checklists WHERE id = ?")
+    .prepare("SELECT id, title, image_path FROM checklists WHERE id = ? AND deleted_at IS NULL")
     .get(checklistId);
 
   if (!checklist) {
@@ -67,7 +67,10 @@ router.get("/", authRequired, (req, res) => {
   if (req.user.role === "admin") {
     return res.json(
       db
-        .prepare(baseQuery + " WHERE COALESCE(c.is_walkthrough, 0) = 0 ORDER BY a.id DESC")
+        .prepare(
+          baseQuery +
+            " WHERE COALESCE(c.is_walkthrough, 0) = 0 AND c.deleted_at IS NULL ORDER BY a.id DESC"
+        )
         .all()
     );
   }
@@ -75,7 +78,7 @@ router.get("/", authRequired, (req, res) => {
     db
       .prepare(
         baseQuery +
-          " WHERE a.assigned_to_user_id = ? AND COALESCE(c.is_walkthrough, 0) = 0 ORDER BY a.id DESC"
+          " WHERE a.assigned_to_user_id = ? AND COALESCE(c.is_walkthrough, 0) = 0 AND c.deleted_at IS NULL ORDER BY a.id DESC"
       )
       .all(req.user.id)
   );
@@ -89,7 +92,7 @@ router.post("/self", authRequired, (req, res) => {
 router.post("/", authRequired, (req, res) => {
   const { checklistId, assignedToUserId, self } = req.body || {};
 
-  if (self) {
+  if (self || (req.user.role !== "admin" && checklistId && !assignedToUserId)) {
     return createSelfAssignment(req, res, checklistId);
   }
 
