@@ -10,5 +10,5 @@ export function createAssignment(checklistId: number, assignedToUserId: number) 
 }
 
 export function createSelfAssignment(checklistId: number) {
-  return apiPost<{ assignment: Assignment }>("/assignments/self", { checklistId });
+  return apiPost<{ assignment: Assignment }>("/assignments", { checklistId, self: true });
 }

@@ -44,8 +44,6 @@ export type Checklist = {
   image_path?: string;
   imagePath?: string;
   created_at: string;
-  deleted_at?: string | null;
-  deletedByName?: string;
   sections: ChecklistSection[];
 };
 

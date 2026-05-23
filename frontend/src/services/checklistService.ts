@@ -11,10 +11,6 @@ export async function getChecklists(): Promise<Checklist[]> {
   return apiGet("/checklists");
 }
 
-export async function getDeletedChecklists(): Promise<Checklist[]> {
-  return apiGet("/checklists/deleted");
-}
-
 export async function createChecklist(
   title: string,
   imagePath: string,
@@ -44,8 +40,4 @@ export async function deleteChecklist(checklistId: number) {
 
 export async function forceDeleteChecklist(checklistId: number) {
   return apiDelete(`/checklists/${checklistId}?force=true`);
-}
-
-export async function restoreChecklist(checklistId: number) {
-  return apiPut(`/checklists/${checklistId}/restore`, {});
 }
