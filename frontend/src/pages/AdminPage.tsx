@@ -164,6 +164,9 @@ export default function AdminPage({ user, onLogout }: Props) {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [expandedTemplateId, setExpandedTemplateId] = useState<number | null>(null);
+  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
+  const [expandedReportId, setExpandedReportId] = useState<number | null>(null);
 
   const [title, setTitle] = useState("");
   const [templateImagePath, setTemplateImagePath] = useState("");
@@ -637,6 +640,12 @@ export default function AdminPage({ user, onLogout }: Props) {
     const pdfPayload = mapReportToPdfPayload(report);
     await generateChecklistPdf(pdfPayload as any);
   };
+
+  const getChecklistQuestionCount = (checklist: Checklist) =>
+    (checklist.sections || []).reduce(
+      (total, section) => total + section.items.length,
+      0
+    );
 
   const handleDownloadActionPlanExcel = async (report: Report) => {
     setMessage("");
@@ -1223,65 +1232,91 @@ export default function AdminPage({ user, onLogout }: Props) {
             {checklists.length === 0 ? (
               <div style={styles.small}>No templates found.</div>
             ) : (
-              checklists.map((c) => (
-                <div key={c.id} style={styles.section}>
-                  {(c.image_path || c.imagePath) ? (
-                    <img
-                      src={(c.image_path || c.imagePath || "").startsWith("http") ? (c.image_path || c.imagePath) : `${FILE_BASE}${c.image_path || c.imagePath}`}
-                      alt={c.title}
-                      style={{
-                        width: "25%",
-                        minWidth: 100,
-                        maxWidth: 180,
-                        height: "auto",
-                        objectFit: "contain",
-                        borderRadius: 10,
-                        border: "1px solid #e5e7eb",
-                        marginBottom: 10,
-                        display: "block",
-                      }}
-                    />
-                  ) : null}
-                  <strong>{c.title}</strong>
-                  <br />
-                  Sections: {Array.isArray(c.sections) ? c.sections.length : 0}
-                  <br />
-                  <div style={{ marginTop: 8 }}>
-                    {Array.isArray(c.sections) &&
-                      c.sections.map((section) => (
-                        <div key={section.id} style={{ marginBottom: 6 }}>
-                          <strong>- {section.title}</strong> ({section.items.length} questions)
+              <div style={styles.compactList}>
+                {checklists.map((c) => {
+                  const isExpanded = expandedTemplateId === c.id;
+                  const sectionCount = Array.isArray(c.sections) ? c.sections.length : 0;
+                  const questionCount = getChecklistQuestionCount(c);
+
+                  return (
+                    <div key={c.id} style={styles.compactRow}>
+                      <button
+                        type="button"
+                        style={styles.compactRowHeader}
+                        onClick={() => setExpandedTemplateId(isExpanded ? null : c.id)}
+                      >
+                        <span>
+                          <span style={styles.compactRowTitle}>{c.title}</span>
+                          <span style={styles.compactRowMeta}>
+                            {sectionCount} sections - {questionCount} questions
+                          </span>
+                        </span>
+                        <span style={styles.compactRowChevron}>
+                          {isExpanded ? "-" : "+"}
+                        </span>
+                      </button>
+
+                      {isExpanded ? (
+                        <div style={styles.compactRowBody}>
+                          {(c.image_path || c.imagePath) ? (
+                            <img
+                              src={(c.image_path || c.imagePath || "").startsWith("http") ? (c.image_path || c.imagePath) : `${FILE_BASE}${c.image_path || c.imagePath}`}
+                              alt={c.title}
+                              style={{
+                                width: "100%",
+                                maxWidth: 180,
+                                height: "auto",
+                                objectFit: "contain",
+                                borderRadius: 10,
+                                border: "1px solid #e5e7eb",
+                                marginBottom: 10,
+                                display: "block",
+                              }}
+                            />
+                          ) : null}
+                          <div style={{ marginTop: 8 }}>
+                            {Array.isArray(c.sections) &&
+                              c.sections.map((section) => (
+                                <div key={section.id} style={{ marginBottom: 6 }}>
+                                  <strong>- {section.title}</strong>{" "}
+                                  <span style={styles.small}>
+                                    ({section.items.length} questions)
+                                  </span>
+                                </div>
+                              ))}
+                          </div>
+                          <div style={styles.compactActions}>
+                            <button
+                              style={styles.secondaryButton}
+                              onClick={() => startEditTemplate(c)}
+                            >
+                              Edit Template
+                            </button>
+                            <button
+                              style={styles.secondaryButton}
+                              onClick={() => handleDuplicateTemplate(c)}
+                            >
+                              Copy Template
+                            </button>
+                            <button
+                              style={styles.button}
+                              onClick={() => handleDeleteTemplate(c.id)}
+                            >
+                              Delete Template
+                            </button>
+                            <button
+                              style={{ ...styles.button, background: "#b91c1c" }}
+                              onClick={() => handleForceDeleteTemplate(c.id)}
+                            >
+                              Force Delete
+                            </button>
+                          </div>
                         </div>
-                      ))}
-                  </div>
-                  <div style={{ ...styles.row, marginTop: 10 }}>
-                    <button
-                      style={styles.secondaryButton}
-                      onClick={() => startEditTemplate(c)}
-                    >
-                      Edit Template
-                    </button>
-                    <button
-                      style={styles.secondaryButton}
-                      onClick={() => handleDuplicateTemplate(c)}
-                    >
-                      Copy Template
-                    </button>
-                    <button
-                      style={styles.button}
-                      onClick={() => handleDeleteTemplate(c.id)}
-                    >
-                      Delete Template
-                    </button>
-                    <button
-                      style={{ ...styles.button, background: "#b91c1c" }}
-                      onClick={() => handleForceDeleteTemplate(c.id)}
-                    >
-                      Force Delete
-                    </button>
-                  </div>
-                </div>
-              ))
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
             </>
@@ -1458,76 +1493,108 @@ export default function AdminPage({ user, onLogout }: Props) {
             {approvedUsers.length === 0 ? (
               <div style={styles.small}>No users found.</div>
             ) : (
-              approvedUsers.map((u) => (
-                <div key={u.id} style={styles.section}>
-                  {editingUserId === u.id ? (
-                    <>
-                      <div style={{ ...styles.row, marginBottom: 10 }}>
-                        <input
-                          style={styles.input}
-                          placeholder="Username"
-                          value={editUsername}
-                          onChange={(e) => setEditUsername(e.target.value)}
-                        />
-                        <input
-                          style={styles.input}
-                          placeholder="New Password (optional)"
-                          type="password"
-                          value={editPassword}
-                          onChange={(e) => setEditPassword(e.target.value)}
-                        />
-                        <input
-                          style={styles.input}
-                          placeholder="Full Name"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                        />
-                        <select
-                          style={styles.input}
-                          value={editRole}
-                          onChange={(e) => setEditRole(e.target.value as "admin" | "user")}
-                        >
-                          <option value="user">user</option>
-                          <option value="admin">admin</option>
-                        </select>
-                      </div>
-                      <div style={styles.row}>
-                        <button style={styles.secondaryButton} onClick={cancelEditUser}>
-                          Cancel
-                        </button>
-                        <button style={styles.button} onClick={handleUpdateUser}>
-                          Save Changes
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <strong>{u.name}</strong> ({u.username}) - {u.role}
-                      <br />
-                      <div style={{ ...styles.row, marginTop: 10 }}>
-                        <button
-                          style={styles.secondaryButton}
-                          onClick={() => startEditUser(u)}
-                        >
-                          Edit User
-                        </button>
-                        <button
-                          style={styles.button}
-                          onClick={() => handleDeleteUser(u.id)}
-                          disabled={u.id === user.id}
-                        >
-                          Delete User
-                        </button>
-                        {u.id === user.id ? (
-                          <span style={{ fontSize: 12, color: "#6b7280" }}>
-                            You cannot delete your own account
+              <div style={styles.compactList}>
+                {approvedUsers.map((u) => {
+                  const isExpanded = expandedUserId === u.id || editingUserId === u.id;
+
+                  return (
+                    <div key={u.id} style={styles.compactRow}>
+                      <button
+                        type="button"
+                        style={styles.compactRowHeader}
+                        onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
+                      >
+                        <span>
+                          <span style={styles.compactRowTitle}>{u.name}</span>
+                          <span style={styles.compactRowMeta}>
+                            {u.username} - {u.role}
                           </span>
-                        ) : null}
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))
+                        </span>
+                        <span style={styles.compactRowChevron}>
+                          {isExpanded ? "-" : "+"}
+                        </span>
+                      </button>
+
+                      {isExpanded ? (
+                        <div style={styles.compactRowBody}>
+                          {editingUserId === u.id ? (
+                            <>
+                              <div style={{ ...styles.row, marginBottom: 10 }}>
+                                <input
+                                  style={styles.input}
+                                  placeholder="Username"
+                                  value={editUsername}
+                                  onChange={(e) => setEditUsername(e.target.value)}
+                                />
+                                <input
+                                  style={styles.input}
+                                  placeholder="New Password (optional)"
+                                  type="password"
+                                  value={editPassword}
+                                  onChange={(e) => setEditPassword(e.target.value)}
+                                />
+                                <input
+                                  style={styles.input}
+                                  placeholder="Full Name"
+                                  value={editName}
+                                  onChange={(e) => setEditName(e.target.value)}
+                                />
+                                <select
+                                  style={styles.input}
+                                  value={editRole}
+                                  onChange={(e) =>
+                                    setEditRole(e.target.value as "admin" | "user")
+                                  }
+                                >
+                                  <option value="user">user</option>
+                                  <option value="admin">admin</option>
+                                </select>
+                              </div>
+                              <div style={styles.compactActions}>
+                                <button
+                                  style={styles.secondaryButton}
+                                  onClick={cancelEditUser}
+                                >
+                                  Cancel
+                                </button>
+                                <button style={styles.button} onClick={handleUpdateUser}>
+                                  Save Changes
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div style={styles.small}>
+                                Status: {u.active === false ? "inactive" : "active"}
+                              </div>
+                              <div style={styles.compactActions}>
+                                <button
+                                  style={styles.secondaryButton}
+                                  onClick={() => startEditUser(u)}
+                                >
+                                  Edit User
+                                </button>
+                                <button
+                                  style={styles.button}
+                                  onClick={() => handleDeleteUser(u.id)}
+                                  disabled={u.id === user.id}
+                                >
+                                  Delete User
+                                </button>
+                                {u.id === user.id ? (
+                                  <span style={{ fontSize: 12, color: "#6b7280" }}>
+                                    You cannot delete your own account
+                                  </span>
+                                ) : null}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
           ) : null}
@@ -1539,48 +1606,73 @@ export default function AdminPage({ user, onLogout }: Props) {
             {reports.length === 0 ? (
               <div style={styles.small}>No reports yet.</div>
             ) : (
-              reports.map((r) => (
-                <div key={r.id} style={styles.section}>
-                  <strong>{r.checklistTitle}</strong>
-                  <br />
-                  Completed By: {r.completedByName}
-                  <br />
-                  Assigned To: {r.assignedToName}
-                  <br />
-                  Status: {r.status}
-                  <br />
-                  <div style={{ ...styles.row, marginTop: 10 }}>
-                    <button
-                      style={styles.secondaryButton}
-                      onClick={() => setSelectedReport(r)}
-                    >
-                      View Detail
-                    </button>
+              <div style={styles.compactList}>
+                {reports.map((r) => {
+                  const isExpanded = expandedReportId === r.id;
 
-                    <button
-                      style={styles.button}
-                      onClick={() => handleDownloadPdf(r)}
-                    >
-                      Download PDF
-                    </button>
+                  return (
+                    <div key={r.id} style={styles.compactRow}>
+                      <button
+                        type="button"
+                        style={styles.compactRowHeader}
+                        onClick={() => setExpandedReportId(isExpanded ? null : r.id)}
+                      >
+                        <span>
+                          <span style={styles.compactRowTitle}>
+                            {r.checklistTitle}
+                          </span>
+                          <span style={styles.compactRowMeta}>
+                            Completed By: {r.completedByName}
+                          </span>
+                        </span>
+                        <span style={styles.compactRowChevron}>
+                          {isExpanded ? "-" : "+"}
+                        </span>
+                      </button>
 
-                    <button
-                      style={styles.button}
-                      onClick={() => handleDownloadActionPlanExcel(r)}
-                      disabled={actionPlanReportId === r.id}
-                    >
-                      {actionPlanReportId === r.id ? "Preparing Excel..." : "AI Action Plan Excel"}
-                    </button>
+                      {isExpanded ? (
+                        <div style={styles.compactRowBody}>
+                          <div style={styles.small}>
+                            Assigned To: {r.assignedToName} - Status: {r.status}
+                          </div>
+                          <div style={styles.compactActions}>
+                            <button
+                              style={styles.secondaryButton}
+                              onClick={() => setSelectedReport(r)}
+                            >
+                              View Detail
+                            </button>
 
-                    <button
-                      style={styles.button}
-                      onClick={() => handleDeleteReport(r.id)}
-                    >
-                      Delete Report
-                    </button>
-                  </div>
-                </div>
-              ))
+                            <button
+                              style={styles.button}
+                              onClick={() => handleDownloadPdf(r)}
+                            >
+                              Download PDF
+                            </button>
+
+                            <button
+                              style={styles.button}
+                              onClick={() => handleDownloadActionPlanExcel(r)}
+                              disabled={actionPlanReportId === r.id}
+                            >
+                              {actionPlanReportId === r.id
+                                ? "Preparing Excel..."
+                                : "AI Action Plan Excel"}
+                            </button>
+
+                            <button
+                              style={styles.button}
+                              onClick={() => handleDeleteReport(r.id)}
+                            >
+                              Delete Report
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
           ) : null}
