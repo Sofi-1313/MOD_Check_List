@@ -165,6 +165,7 @@ export default function AdminPage({ user, onLogout }: Props) {
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [expandedTemplateId, setExpandedTemplateId] = useState<number | null>(null);
+  const [expandedAssignmentId, setExpandedAssignmentId] = useState<number | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
   const [expandedReportId, setExpandedReportId] = useState<number | null>(null);
 
@@ -1365,17 +1366,51 @@ export default function AdminPage({ user, onLogout }: Props) {
               </button>
             </div>
 
-            {assignments.map((a) => (
-              <div key={a.id} style={styles.section}>
-                <strong>{a.checklistTitle}</strong>
-                <br />
-                Assigned To: {a.assignedToName}
-                <br />
-                Assigned By: {a.assignedByName}
-                <br />
-                Status: {a.status}
+            {assignments.length === 0 ? (
+              <div style={styles.small}>No assignments found.</div>
+            ) : (
+              <div style={styles.compactList}>
+                {assignments.map((a) => {
+                  const isExpanded = expandedAssignmentId === a.id;
+
+                  return (
+                    <div key={a.id} style={styles.compactRow}>
+                      <button
+                        type="button"
+                        style={styles.compactRowHeader}
+                        onClick={() =>
+                          setExpandedAssignmentId(isExpanded ? null : a.id)
+                        }
+                      >
+                        <span>
+                          <span style={styles.compactRowTitle}>
+                            {a.checklistTitle}
+                          </span>
+                          <span style={styles.compactRowMeta}>
+                            Assigned To: {a.assignedToName}
+                          </span>
+                        </span>
+                        <span style={styles.compactRowChevron}>
+                          {isExpanded ? "-" : "+"}
+                        </span>
+                      </button>
+
+                      {isExpanded ? (
+                        <div style={styles.compactRowBody}>
+                          <div style={styles.small}>
+                            Assigned By: {a.assignedByName}
+                          </div>
+                          <div style={styles.small}>
+                            Status: {a.status} - Assigned:{" "}
+                            {new Date(a.assigned_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
-            ))}
+            )}
           </div>
           ) : null}
 
