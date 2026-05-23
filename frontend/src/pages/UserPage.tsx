@@ -131,7 +131,6 @@ export default function UserPage({ user, onLogout }: Props) {
   const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
   const [isRestoringDraft, setIsRestoringDraft] = useState(false);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-  const [selfAuditChecklistId, setSelfAuditChecklistId] = useState<number | null>(null);
   const activeAssignmentIdRef = useRef<number | null>(null);
   const latestFormRef = useRef<Record<number, FillItem>>({});
   const saveTimeoutRef = useRef<number | null>(null);
@@ -512,28 +511,11 @@ export default function UserPage({ user, onLogout }: Props) {
   };
 
   const startSelfAudit = async (checklist: Checklist) => {
-    setMessage("");
-    setSelfAuditChecklistId(checklist.id);
-
-    try {
-      const response = await createSelfAssignment(checklist.id);
-      const assignment = response.assignment;
-      setAssignments((prev) => [
-        assignment,
-        ...prev.filter((item) => item.id !== assignment.id),
-      ]);
-      setActiveUserTab("assignments");
-      await openAssignment(assignment);
-    } catch (error) {
-      console.error(error);
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "Self Audit could not be started. Please try again."
-      );
-    } finally {
-      setSelfAuditChecklistId(null);
-    }
+    const response = await createSelfAssignment(checklist.id);
+    const assignment = response.assignment;
+    setAssignments((prev) => [assignment, ...prev.filter((item) => item.id !== assignment.id)]);
+    setActiveUserTab("assignments");
+    await openAssignment(assignment);
   };
 
   return (
@@ -676,10 +658,9 @@ export default function UserPage({ user, onLogout }: Props) {
                       <button
                         type="button"
                         style={styles.button}
-                        disabled={selfAuditChecklistId === checklist.id}
                         onClick={() => startSelfAudit(checklist)}
                       >
-                        {selfAuditChecklistId === checklist.id ? "Starting..." : "Self Audit"}
+                        Self Audit
                       </button>
                     </div>
                   ))}
