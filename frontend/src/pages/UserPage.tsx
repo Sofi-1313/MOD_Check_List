@@ -38,9 +38,9 @@ function getAnswerButtonStyle(
   const base: React.CSSProperties = {
     padding: "8px 14px",
     borderRadius: 10,
-    border: "1px solid #cbd5e1",
+    border: "1px solid #d8c7aa",
     background: "#ffffff",
-    color: "#111827",
+    color: "#243b2d",
     cursor: "pointer",
     fontWeight: 700,
     minWidth: 72,
@@ -69,9 +69,9 @@ function getAnswerButtonStyle(
 
   return {
     ...base,
-    background: "#2563eb",
+    background: "#2f6f4e",
     color: "#ffffff",
-    border: "1px solid #2563eb",
+    border: "1px solid #2f6f4e",
   };
 }
 
@@ -497,7 +497,7 @@ export default function UserPage({ user, onLogout }: Props) {
   return (
     <DashboardShell user={user} onLogout={onLogout}>
       {message ? (
-        <div style={{ ...styles.section, background: "#ecfeff" }}>{message}</div>
+        <div style={{ ...styles.section, background: "#dbe9d2" }}>{message}</div>
       ) : null}
 
       {selectedReport ? (
@@ -610,7 +610,7 @@ export default function UserPage({ user, onLogout }: Props) {
                                 height: "auto",
                                 objectFit: "contain",
                                 borderRadius: 10,
-                                border: "1px solid #e5e7eb",
+                                border: "1px solid #d8c7aa",
                                 marginBottom: 10,
                                 display: "block",
                               }}
@@ -712,7 +712,7 @@ export default function UserPage({ user, onLogout }: Props) {
                 height: "auto",
                 objectFit: "contain",
                 borderRadius: 10,
-                border: "1px solid #e5e7eb",
+                border: "1px solid #d8c7aa",
                 marginBottom: 14,
                 display: "block",
               }}
@@ -723,7 +723,7 @@ export default function UserPage({ user, onLogout }: Props) {
           <div
             style={{
               ...styles.section,
-              background: "#f8fafc",
+              background: "#fbf6ea",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -732,7 +732,7 @@ export default function UserPage({ user, onLogout }: Props) {
             }}
           >
             <div>
-              <div style={{ fontWeight: 800, color: "#0f172a" }}>
+              <div style={{ fontWeight: 800, color: "#243b2d" }}>
                 Section {currentSectionIndex + 1} of {activeSections.length}
               </div>
               <div style={styles.small}>
@@ -749,7 +749,7 @@ export default function UserPage({ user, onLogout }: Props) {
                   marginBottom: 8,
                   fontSize: 13,
                   fontWeight: 700,
-                  color: "#334155",
+                  color: "#5b513f",
                 }}
               >
                 <span>Progress</span>
@@ -767,7 +767,7 @@ export default function UserPage({ user, onLogout }: Props) {
                   width: "100%",
                   height: 12,
                   borderRadius: 999,
-                  background: "#e2e8f0",
+                  background: "#e8deca",
                   overflow: "hidden",
                 }}
               >
@@ -776,7 +776,7 @@ export default function UserPage({ user, onLogout }: Props) {
                     width: `${progressPercent}%`,
                     height: "100%",
                     borderRadius: 999,
-                    background: progressPercent === 100 ? "#16a34a" : "#2563eb",
+                    background: progressPercent === 100 ? "#16a34a" : "#2f6f4e",
                     transition: "width 0.2s ease",
                   }}
                 />
@@ -797,10 +797,10 @@ export default function UserPage({ user, onLogout }: Props) {
                     borderRadius: 999,
                     border:
                       index === currentSectionIndex
-                        ? "1px solid #2563eb"
-                        : "1px solid #cbd5e1",
-                    background: index === currentSectionIndex ? "#2563eb" : "#fff",
-                    color: index === currentSectionIndex ? "#fff" : "#334155",
+                        ? "1px solid #2f6f4e"
+                        : "1px solid #d8c7aa",
+                    background: index === currentSectionIndex ? "#2f6f4e" : "#fffaf0",
+                    color: index === currentSectionIndex ? "#fff" : "#5b513f",
                     cursor: "pointer",
                     fontWeight: 800,
                   }}
@@ -813,12 +813,12 @@ export default function UserPage({ user, onLogout }: Props) {
 
           {currentSection ? (
             <div key={currentSection.id} style={styles.section}>
-              <h3 style={{ marginTop: 0, color: "#1d4ed8" }}>
+              <h3 style={{ marginTop: 0, color: "#2f6f4e" }}>
                 {currentSectionIndex + 1}. {currentSection.title}
               </h3>
 
               {currentSection.items.map((item, index) => (
-                <div key={item.id} style={{ ...styles.section, background: "#fff" }}>
+                <div key={item.id} style={{ ...styles.section, background: "#fffaf0" }}>
                   <strong>
                     {index + 1}. {item.question}
                   </strong>
@@ -900,10 +900,10 @@ export default function UserPage({ user, onLogout }: Props) {
                             alignItems: "center",
                             gap: 8,
                             padding: "10px 12px",
-                            border: "1px solid #d1d5db",
+                            border: "1px solid #d8c7aa",
                             borderRadius: 10,
                             background:
-                              isChecked ? "#eff6ff" : "#fff",
+                              isChecked ? "#dbe9d2" : "#fffaf0",
                             cursor: "pointer",
                             fontWeight: 600,
                           }}
@@ -958,7 +958,7 @@ export default function UserPage({ user, onLogout }: Props) {
                       onChange={(e) => handleAddPhotos(item.id, e.target.files)}
                     />
                     {uploadingItemId === item.id ? (
-                      <div style={{ marginTop: 8, color: "#2563eb", fontSize: 13 }}>
+                      <div style={{ marginTop: 8, color: "#2f6f4e", fontSize: 13 }}>
                         Uploading photos...
                       </div>
                     ) : null}
@@ -982,10 +982,10 @@ export default function UserPage({ user, onLogout }: Props) {
                           <div
                             key={idx}
                             style={{
-                              border: "1px solid #e5e7eb",
+                              border: "1px solid #d8c7aa",
                               borderRadius: 12,
                               padding: 10,
-                              background: "#fafafa",
+                              background: "#fbf6ea",
                             }}
                           >
                             <img

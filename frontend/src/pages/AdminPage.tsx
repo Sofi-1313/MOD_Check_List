@@ -929,19 +929,19 @@ export default function AdminPage({ user, onLogout }: Props) {
                     setError("");
                   }}
                   style={{
-                    border: isActive ? "2px solid #2563eb" : "1px solid #e5e7eb",
+                    border: isActive ? "2px solid #2f6f4e" : "1px solid #d8c7aa",
                     borderRadius: 10,
-                    background: isActive ? "#eff6ff" : "#fff",
-                    color: "#111827",
+                    background: isActive ? "#dbe9d2" : "#fffaf0",
+                    color: "#243b2d",
                     cursor: "pointer",
                     padding: "12px 14px",
                     textAlign: "left",
                     minHeight: 74,
-                    boxShadow: isActive ? "0 2px 8px rgba(37,99,235,0.12)" : "none",
+                    boxShadow: isActive ? "0 2px 8px rgba(47,111,78,0.14)" : "none",
                   }}
                 >
                   <div style={{ fontWeight: 800, marginBottom: 4 }}>{section.label}</div>
-                  <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.3 }}>
+                  <div style={{ fontSize: 12, color: "#6f624e", lineHeight: 1.3 }}>
                     {section.description}
                   </div>
                 </button>
@@ -950,7 +950,7 @@ export default function AdminPage({ user, onLogout }: Props) {
           </div>
 
           {message ? (
-            <div style={{ ...styles.section, background: "#ecfeff", color: "#0f172a" }}>
+            <div style={{ ...styles.section, background: "#dbe9d2", color: "#243b2d" }}>
               {message}
             </div>
           ) : null}
@@ -975,7 +975,7 @@ export default function AdminPage({ user, onLogout }: Props) {
               onChange={(e) => setTitle(e.target.value)}
             />
 
-            <div style={{ ...styles.section, background: "#fff", marginTop: 0, marginBottom: 12 }}>
+            <div style={{ ...styles.section, background: "#fffaf0", marginTop: 0, marginBottom: 12 }}>
               <label style={{ display: "block", fontWeight: 700, marginBottom: 8 }}>
                 Import Questions from Excel
               </label>
@@ -992,7 +992,7 @@ export default function AdminPage({ user, onLogout }: Props) {
               </div>
             </div>
 
-            <div style={{ ...styles.section, background: "#fff", marginTop: 0, marginBottom: 12 }}>
+            <div style={{ ...styles.section, background: "#fffaf0", marginTop: 0, marginBottom: 12 }}>
               <label style={{ display: "block", fontWeight: 700, marginBottom: 8 }}>
                 Template Image
               </label>
@@ -1016,7 +1016,7 @@ export default function AdminPage({ user, onLogout }: Props) {
                       height: "auto",
                       objectFit: "contain",
                       borderRadius: 10,
-                      border: "1px solid #e5e7eb",
+                      border: "1px solid #d8c7aa",
                       display: "block",
                     }}
                   />
@@ -1032,7 +1032,7 @@ export default function AdminPage({ user, onLogout }: Props) {
             </div>
 
             {sections.map((section, sectionIndex) => (
-              <div key={sectionIndex} style={{ ...styles.section, background: "#fff" }}>
+              <div key={sectionIndex} style={{ ...styles.section, background: "#fffaf0" }}>
                 <div style={{ ...styles.row, marginBottom: 10 }}>
                   <button
                     style={styles.secondaryButton}
@@ -1127,7 +1127,7 @@ export default function AdminPage({ user, onLogout }: Props) {
                       </select>
 
                       {["MULTIPLE_CHOICE", "RADIO_BUTTON"].includes(item.answerType) ? (
-                        <div style={{ ...styles.section, marginTop: 0, background: "#f9fafb" }}>
+                        <div style={{ ...styles.section, marginTop: 0, background: "#f7eddc" }}>
                           <div style={{ ...styles.small, marginBottom: 8 }}>
                             Answer options
                           </div>
@@ -1269,7 +1269,7 @@ export default function AdminPage({ user, onLogout }: Props) {
                                 height: "auto",
                                 objectFit: "contain",
                                 borderRadius: 10,
-                                border: "1px solid #e5e7eb",
+                                border: "1px solid #d8c7aa",
                                 marginBottom: 10,
                                 display: "block",
                               }}
@@ -1419,7 +1419,7 @@ export default function AdminPage({ user, onLogout }: Props) {
             <h3 style={styles.title}>User Management</h3>
 
             {pendingUsers.length > 0 ? (
-              <div style={{ ...styles.section, background: "#fff7ed", marginBottom: 14 }}>
+              <div style={{ ...styles.section, background: "#f7eddc", marginBottom: 14 }}>
                 <h4 style={{ ...styles.title, marginBottom: 10 }}>Pending Approval</h4>
 
                 {pendingUsers.map((u) => (
@@ -1617,7 +1617,7 @@ export default function AdminPage({ user, onLogout }: Props) {
                                   Delete User
                                 </button>
                                 {u.id === user.id ? (
-                                  <span style={{ fontSize: 12, color: "#6b7280" }}>
+                                  <span style={{ fontSize: 12, color: "#6f624e" }}>
                                     You cannot delete your own account
                                   </span>
                                 ) : null}

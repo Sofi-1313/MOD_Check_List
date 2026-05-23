@@ -49,7 +49,7 @@ export default function LoginPage({ onLogin }: Props) {
 
         {error ? <div style={styles.error}>{error}</div> : null}
         {message ? (
-          <div style={{ ...styles.section, marginTop: 0, marginBottom: 12, background: "#ecfeff" }}>
+          <div style={{ ...styles.section, marginTop: 0, marginBottom: 12, background: "#dbe9d2" }}>
             {message}
           </div>
         ) : null}
