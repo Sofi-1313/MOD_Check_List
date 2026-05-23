@@ -24,58 +24,9 @@ router.get("/", authRequired, (req, res) => {
   `;
 
   if (req.user.role === "admin") {
-    return res.json(
-      db
-        .prepare(baseQuery + " WHERE COALESCE(c.is_walkthrough, 0) = 0 ORDER BY a.id DESC")
-        .all()
-    );
+    return res.json(db.prepare(baseQuery + " ORDER BY a.id DESC").all());
   }
-  res.json(
-    db
-      .prepare(
-        baseQuery +
-          " WHERE a.assigned_to_user_id = ? AND COALESCE(c.is_walkthrough, 0) = 0 ORDER BY a.id DESC"
-      )
-      .all(req.user.id)
-  );
-});
-
-router.post("/self", authRequired, (req, res) => {
-  const { checklistId } = req.body || {};
-  if (!checklistId) {
-    return res.status(400).json({ message: "checklistId required" });
-  }
-
-  const checklist = db
-    .prepare("SELECT id, title, image_path FROM checklists WHERE id = ?")
-    .get(checklistId);
-
-  if (!checklist) {
-    return res.status(404).json({ message: "Checklist not found" });
-  }
-
-  const assignedAt = new Date().toISOString();
-
-  const result = db.prepare(`
-    INSERT INTO assignments (checklist_id, assigned_to_user_id, assigned_by_user_id, assigned_at, status)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(checklistId, req.user.id, req.user.id, assignedAt, "assigned");
-
-  res.json({
-    success: true,
-    assignment: {
-      id: result.lastInsertRowid,
-      checklist_id: checklist.id,
-      assigned_to_user_id: req.user.id,
-      assigned_by_user_id: req.user.id,
-      assigned_at: assignedAt,
-      status: "assigned",
-      checklistTitle: checklist.title,
-      checklistImagePath: checklist.image_path,
-      assignedToName: req.user.name,
-      assignedByName: req.user.name,
-    },
-  });
+  res.json(db.prepare(baseQuery + " WHERE a.assigned_to_user_id = ? ORDER BY a.id DESC").all(req.user.id));
 });
 
 router.post("/", authRequired, adminOnly, (req, res) => {

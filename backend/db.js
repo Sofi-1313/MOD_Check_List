@@ -238,16 +238,9 @@ const checklistColumns = db.prepare(`PRAGMA table_info(checklists)`).all();
 const hasChecklistImagePath = checklistColumns.some(
   (column) => column.name === "image_path"
 );
-const hasChecklistIsWalkthrough = checklistColumns.some(
-  (column) => column.name === "is_walkthrough"
-);
 
 if (!hasChecklistImagePath) {
   db.exec(`ALTER TABLE checklists ADD COLUMN image_path TEXT;`);
-}
-
-if (!hasChecklistIsWalkthrough) {
-  db.exec(`ALTER TABLE checklists ADD COLUMN is_walkthrough INTEGER NOT NULL DEFAULT 0;`);
 }
 
 module.exports = db;

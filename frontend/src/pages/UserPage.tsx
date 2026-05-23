@@ -3,8 +3,7 @@ import { AnswerType, Assignment, Checklist, Report, User } from "../types";
 import { styles } from "../styles/appStyles";
 import DashboardShell from "../components/DashboardShell";
 import ReportDetail from "../components/ReportDetail";
-import WalkThroughPanel from "../components/WalkThroughPanel";
-import { createSelfAssignment, getAssignments } from "../services/assignmentService";
+import { getAssignments } from "../services/assignmentService";
 import { getChecklists } from "../services/checklistService";
 import { apiPost, FILE_BASE, uploadPhotos } from "../services/api";
 import {
@@ -27,15 +26,6 @@ type FillItem = {
   photos: string[];
 };
 
-type UserTabKey = "assignments" | "templates" | "walkthrough" | "reports";
-
-const USER_TABS: Array<{ key: UserTabKey; label: string }> = [
-  { key: "assignments", label: "Assignments" },
-  { key: "templates", label: "Templates" },
-  { key: "walkthrough", label: "Walk-Through" },
-  { key: "reports", label: "Reports" },
-];
-
 type Props = {
   user: User;
   onLogout: () => Promise<void>;
@@ -47,10 +37,10 @@ function getAnswerButtonStyle(
 ): React.CSSProperties {
   const base: React.CSSProperties = {
     padding: "8px 14px",
-    borderRadius: 8,
-    border: "1px solid #d6c7b4",
-    background: "#fffdf8",
-    color: "#2f2a24",
+    borderRadius: 10,
+    border: "1px solid #cbd5e1",
+    background: "#ffffff",
+    color: "#111827",
     cursor: "pointer",
     fontWeight: 700,
     minWidth: 72,
@@ -79,9 +69,9 @@ function getAnswerButtonStyle(
 
   return {
     ...base,
-    background: "#3f6f58",
+    background: "#2563eb",
     color: "#ffffff",
-    border: "1px solid #3f6f58",
+    border: "1px solid #2563eb",
   };
 }
 
@@ -107,25 +97,13 @@ function mapReportToPdfPayload(report: Report) {
   };
 }
 
-function formatReportDate(value?: string) {
-  if (!value) return "-";
-
-  try {
-    return new Date(value).toLocaleString("tr-TR");
-  } catch {
-    return value;
-  }
-}
-
 export default function UserPage({ user, onLogout }: Props) {
   const localDraftKey = `mod_draft_${user.id}`;
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
-  const [activeUserTab, setActiveUserTab] = useState<UserTabKey>("assignments");
   const [activeAssignmentId, setActiveAssignmentId] = useState<number | null>(null);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-  const [showCompletedReports, setShowCompletedReports] = useState(false);
   const [form, setForm] = useState<Record<number, FillItem>>({});
   const [message, setMessage] = useState("");
   const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
@@ -510,14 +488,6 @@ export default function UserPage({ user, onLogout }: Props) {
     await generateChecklistPdf(pdfPayload as any);
   };
 
-  const startSelfAudit = async (checklist: Checklist) => {
-    const response = await createSelfAssignment(checklist.id);
-    const assignment = response.assignment;
-    setAssignments((prev) => [assignment, ...prev.filter((item) => item.id !== assignment.id)]);
-    setActiveUserTab("assignments");
-    await openAssignment(assignment);
-  };
-
   return (
     <DashboardShell user={user} onLogout={onLogout}>
       {message ? (
@@ -532,48 +502,7 @@ export default function UserPage({ user, onLogout }: Props) {
         />
       ) : !activeAssignment || !activeChecklist ? (
         <>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-              gap: 10,
-              marginBottom: 14,
-            }}
-          >
-            {USER_TABS.map((tab) => {
-              const isActive = activeUserTab === tab.key;
-
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setActiveUserTab(tab.key)}
-                  style={{
-                    ...styles.secondaryButton,
-                    border: isActive ? "2px solid #3f6f58" : "1px solid #d6c7b4",
-                    background: isActive ? "#e7f0e5" : "#efe5d6",
-                  }}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div
-            style={{
-              display: activeUserTab === "walkthrough" ? "block" : "none",
-            }}
-          >
-            <WalkThroughPanel user={user} onSubmitted={load} />
-          </div>
-
-          <div
-            style={{
-              ...styles.section,
-              display: activeUserTab === "assignments" ? "block" : "none",
-            }}
-          >
+          <div style={styles.section}>
             <h3 style={styles.title}>My Assignments</h3>
 
             {assignments.filter((a) => a.status === "assigned").length === 0 ? (
@@ -598,165 +527,37 @@ export default function UserPage({ user, onLogout }: Props) {
             )}
           </div>
 
-          <div
-            style={{
-              ...styles.section,
-              display: activeUserTab === "templates" ? "block" : "none",
-            }}
-          >
-            <h3 style={styles.title}>Templates</h3>
+          <div style={styles.section}>
+            <h3 style={styles.title}>My Reports</h3>
 
-            <div style={{ ...styles.section, background: "#fbf6ec" }}>
-              <h4 style={{ ...styles.title, marginBottom: 10 }}>Available Templates</h4>
-
-              {checklists.length === 0 ? (
-                <div style={styles.small}>No templates found.</div>
-              ) : (
-                <div
-                  style={{
-                    border: "1px solid #e4d8c7",
-                    borderRadius: 10,
-                    overflow: "hidden",
-                    background: "#fffaf2",
-                  }}
-                >
-                  {checklists.map((checklist, index) => (
-                    <div
-                      key={checklist.id}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "minmax(0, 1fr) auto",
-                        gap: 10,
-                        alignItems: "center",
-                        padding: "10px 12px",
-                        borderBottom:
-                          index === checklists.length - 1
-                            ? "none"
-                            : "1px solid #e4d8c7",
-                        background: index % 2 === 0 ? "#fffaf2" : "#fbf6ec",
-                      }}
+            {reports.length === 0 ? (
+              <div style={styles.small}>No reports yet.</div>
+            ) : (
+              reports.map((r) => (
+                <div key={r.id} style={styles.section}>
+                  <strong>{r.checklistTitle}</strong>
+                  <br />
+                  Completed By: {r.completedByName}
+                  <br />
+                  Status: {r.status}
+                  <br />
+                  <div style={{ ...styles.row, marginTop: 10 }}>
+                    <button
+                      style={styles.secondaryButton}
+                      onClick={() => setSelectedReport(r)}
                     >
-                      <div style={{ minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontWeight: 600,
-                            color: "#2f2a24",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                          title={checklist.title}
-                        >
-                          {checklist.title}
-                        </div>
-                        <div style={styles.small}>
-                          {checklist.sections?.length || 0} section(s)
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        style={styles.button}
-                        onClick={() => startSelfAudit(checklist)}
-                      >
-                        Self Audit
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div
-            style={{
-              ...styles.section,
-              display: activeUserTab === "reports" ? "block" : "none",
-            }}
-          >
-            <div
-              style={{
-                ...styles.row,
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              <div>
-                <h3 style={{ ...styles.title, marginBottom: 4 }}>My Reports</h3>
-                <div style={styles.small}>{reports.length} completed report(s)</div>
-              </div>
-              <button
-                type="button"
-                style={styles.secondaryButton}
-                onClick={() => setShowCompletedReports((value) => !value)}
-              >
-                {showCompletedReports ? "Hide Completed Reports" : "Completed Reports"}
-              </button>
-            </div>
-
-            {showCompletedReports ? (
-              reports.length === 0 ? (
-                <div style={{ ...styles.small, marginTop: 12 }}>No reports yet.</div>
-              ) : (
-                <div
-                  style={{
-                    border: "1px solid #e4d8c7",
-                    borderRadius: 10,
-                    overflow: "hidden",
-                    marginTop: 12,
-                    background: "#fffaf2",
-                  }}
-                >
-                  {reports.map((r, index) => (
-                    <div
-                      key={r.id}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "minmax(0, 1fr) auto",
-                        gap: 10,
-                        alignItems: "center",
-                        padding: "10px 12px",
-                        borderBottom:
-                          index === reports.length - 1 ? "none" : "1px solid #e4d8c7",
-                        background: index % 2 === 0 ? "#fffaf2" : "#fbf6ec",
-                      }}
+                      View Report
+                    </button>
+                    <button
+                      style={styles.button}
+                      onClick={() => handleDownloadPdf(r)}
                     >
-                      <div style={{ minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontWeight: 600,
-                            color: "#2f2a24",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                          title={r.checklistTitle}
-                        >
-                          {r.checklistTitle}
-                        </div>
-                        <div style={styles.small}>
-                          By {r.completedByName} - {r.status} - {formatReportDate(r.completed_at)}
-                        </div>
-                      </div>
-                      <div style={{ ...styles.row, justifyContent: "flex-end", gap: 8 }}>
-                        <button
-                          style={styles.secondaryButton}
-                          onClick={() => setSelectedReport(r)}
-                        >
-                          View
-                        </button>
-                        <button
-                          style={styles.button}
-                          onClick={() => handleDownloadPdf(r)}
-                        >
-                          PDF
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                      Download PDF
+                    </button>
+                  </div>
                 </div>
-              )
-            ) : null}
+              ))
+            )}
           </div>
         </>
       ) : (
@@ -772,7 +573,7 @@ export default function UserPage({ user, onLogout }: Props) {
                 height: "auto",
                 objectFit: "contain",
                 borderRadius: 10,
-                border: "1px solid #e4d8c7",
+                border: "1px solid #e5e7eb",
                 marginBottom: 14,
                 display: "block",
               }}
@@ -783,7 +584,7 @@ export default function UserPage({ user, onLogout }: Props) {
           <div
             style={{
               ...styles.section,
-              background: "#fbf6ec",
+              background: "#f8fafc",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -792,7 +593,7 @@ export default function UserPage({ user, onLogout }: Props) {
             }}
           >
             <div>
-              <div style={{ fontWeight: 800, color: "#2f2a24" }}>
+              <div style={{ fontWeight: 800, color: "#0f172a" }}>
                 Section {currentSectionIndex + 1} of {activeSections.length}
               </div>
               <div style={styles.small}>
@@ -809,7 +610,7 @@ export default function UserPage({ user, onLogout }: Props) {
                   marginBottom: 8,
                   fontSize: 13,
                   fontWeight: 700,
-                  color: "#5f5448",
+                  color: "#334155",
                 }}
               >
                 <span>Progress</span>
@@ -827,7 +628,7 @@ export default function UserPage({ user, onLogout }: Props) {
                   width: "100%",
                   height: 12,
                   borderRadius: 999,
-                  background: "#e8dece",
+                  background: "#e2e8f0",
                   overflow: "hidden",
                 }}
               >
@@ -836,7 +637,7 @@ export default function UserPage({ user, onLogout }: Props) {
                     width: `${progressPercent}%`,
                     height: "100%",
                     borderRadius: 999,
-                    background: progressPercent === 100 ? "#16a34a" : "#3f6f58",
+                    background: progressPercent === 100 ? "#16a34a" : "#2563eb",
                     transition: "width 0.2s ease",
                   }}
                 />
@@ -857,10 +658,10 @@ export default function UserPage({ user, onLogout }: Props) {
                     borderRadius: 999,
                     border:
                       index === currentSectionIndex
-                        ? "1px solid #3f6f58"
-                        : "1px solid #d6c7b4",
-                    background: index === currentSectionIndex ? "#3f6f58" : "#fffdf8",
-                    color: index === currentSectionIndex ? "#fff" : "#5f5448",
+                        ? "1px solid #2563eb"
+                        : "1px solid #cbd5e1",
+                    background: index === currentSectionIndex ? "#2563eb" : "#fff",
+                    color: index === currentSectionIndex ? "#fff" : "#334155",
                     cursor: "pointer",
                     fontWeight: 800,
                   }}
@@ -878,7 +679,7 @@ export default function UserPage({ user, onLogout }: Props) {
               </h3>
 
               {currentSection.items.map((item, index) => (
-                <div key={item.id} style={{ ...styles.section, background: "#fffaf2" }}>
+                <div key={item.id} style={{ ...styles.section, background: "#fff" }}>
                   <strong>
                     {index + 1}. {item.question}
                   </strong>
@@ -960,10 +761,10 @@ export default function UserPage({ user, onLogout }: Props) {
                             alignItems: "center",
                             gap: 8,
                             padding: "10px 12px",
-                            border: "1px solid #d6c7b4",
+                            border: "1px solid #d1d5db",
                             borderRadius: 10,
                             background:
-                              isChecked ? "#e7f0e5" : "#fffdf8",
+                              isChecked ? "#eff6ff" : "#fff",
                             cursor: "pointer",
                             fontWeight: 600,
                           }}
@@ -1018,7 +819,7 @@ export default function UserPage({ user, onLogout }: Props) {
                       onChange={(e) => handleAddPhotos(item.id, e.target.files)}
                     />
                     {uploadingItemId === item.id ? (
-                      <div style={{ marginTop: 8, color: "#3f6f58", fontSize: 13 }}>
+                      <div style={{ marginTop: 8, color: "#2563eb", fontSize: 13 }}>
                         Uploading photos...
                       </div>
                     ) : null}
@@ -1042,10 +843,10 @@ export default function UserPage({ user, onLogout }: Props) {
                           <div
                             key={idx}
                             style={{
-                              border: "1px solid #e4d8c7",
+                              border: "1px solid #e5e7eb",
                               borderRadius: 12,
                               padding: 10,
-                              background: "#fbf6ec",
+                              background: "#fafafa",
                             }}
                           >
                             <img

@@ -8,7 +8,3 @@ export function getAssignments() {
 export function createAssignment(checklistId: number, assignedToUserId: number) {
   return apiPost("/assignments", { checklistId, assignedToUserId });
 }
-
-export function createSelfAssignment(checklistId: number) {
-  return apiPost<{ assignment: Assignment }>("/assignments/self", { checklistId });
-}

@@ -70,8 +70,8 @@ function answerStyle(answer: string): React.CSSProperties {
     display: "inline-block",
     padding: "4px 10px",
     borderRadius: 999,
-    background: "#e7f0e5",
-    color: "#2f5b45",
+    background: "#dbeafe",
+    color: "#1d4ed8",
     fontWeight: 700,
   };
 }
@@ -109,7 +109,7 @@ export default function ReportDetail({
                 height: "auto",
                 objectFit: "contain",
                 borderRadius: 10,
-                border: "1px solid #e4d8c7",
+                border: "1px solid #e5e7eb",
                 marginBottom: 10,
                 display: "block",
               }}
@@ -142,30 +142,30 @@ export default function ReportDetail({
 
       <div
         style={{
-          background: "linear-gradient(135deg, #efe5d6, #e7f0e5)",
-          border: "2px solid #9ab39d",
+          background: "linear-gradient(135deg, #dbeafe, #bfdbfe)",
+          border: "2px solid #2563eb",
           borderRadius: 16,
           padding: 18,
           marginBottom: 18,
           textAlign: "center",
-          boxShadow: "0 4px 12px rgba(80, 62, 43, 0.12)",
+          boxShadow: "0 4px 12px rgba(37,99,235,0.15)",
         }}
       >
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#3f6f58", letterSpacing: 0.5 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#1d4ed8", letterSpacing: 0.5 }}>
           Başarı Oranı
         </div>
-        <div style={{ fontSize: 38, fontWeight: 800, color: "#2f5b45", marginTop: 6 }}>
+        <div style={{ fontSize: 38, fontWeight: 800, color: "#1e3a8a", marginTop: 6 }}>
           %{successRate}
         </div>
-        <div style={{ marginTop: 4, color: "#5f5448", fontSize: 13 }}>
+        <div style={{ marginTop: 4, color: "#334155", fontSize: 13 }}>
           {yesCount} / {totalQuestions} soru başarılı
         </div>
       </div>
 
       <div
         style={{
-          background: "#fbf6ec",
-          border: "1px solid #e4d8c7",
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
           borderRadius: 14,
           padding: 16,
           marginBottom: 16,
@@ -226,11 +226,11 @@ export default function ReportDetail({
           <div
             key={item.id || index}
             style={{
-              border: "1px solid #e4d8c7",
+              border: "1px solid #e5e7eb",
               borderRadius: 14,
               padding: 16,
               marginBottom: 14,
-              background: "#fffaf2",
+              background: "#fff",
             }}
           >
             <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 10 }}>
@@ -266,7 +266,7 @@ export default function ReportDetail({
                         height: 120,
                         objectFit: "cover",
                         borderRadius: 10,
-                        border: "1px solid #e4d8c7",
+                        border: "1px solid #e5e7eb",
                       }}
                     />
                   );

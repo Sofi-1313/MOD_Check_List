@@ -40,9 +40,7 @@ function mapDbItem(item) {
 }
 
 router.get("/", authRequired, (req, res) => {
-  const checklists = db
-    .prepare("SELECT * FROM checklists WHERE COALESCE(is_walkthrough, 0) = 0 ORDER BY id DESC")
-    .all();
+  const checklists = db.prepare("SELECT * FROM checklists ORDER BY id DESC").all();
 
   const sectionStmt = db.prepare(`
     SELECT * FROM checklist_sections
