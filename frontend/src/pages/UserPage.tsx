@@ -952,30 +952,28 @@ export default function UserPage({ user, onLogout }: Props) {
                   ) : null}
 
                   {answerType === "FORMAT1" ? (
-                    itemForm?.answer || hasComment || openCommentItemIds[item.id] ? (
-                      <div style={{ marginTop: 10 }}>
-                        <button
-                          type="button"
-                          style={{
-                            ...styles.secondaryButton,
-                            padding: "7px 12px",
-                            fontSize: 13,
-                          }}
-                          onClick={() =>
-                            setOpenCommentItemIds((prev) => ({
-                              ...prev,
-                              [item.id]: !isCommentOpen,
-                            }))
-                          }
-                        >
-                          {isCommentOpen
-                            ? "Hide Comment"
-                            : hasComment
-                              ? "Edit Comment"
-                              : "Add Comment"}
-                        </button>
-                      </div>
-                    ) : null
+                    <div style={{ marginTop: 10 }}>
+                      <button
+                        type="button"
+                        style={{
+                          ...styles.secondaryButton,
+                          padding: "7px 12px",
+                          fontSize: 13,
+                        }}
+                        onClick={() =>
+                          setOpenCommentItemIds((prev) => ({
+                            ...prev,
+                            [item.id]: !isCommentOpen,
+                          }))
+                        }
+                      >
+                        {isCommentOpen
+                          ? "Hide Comment"
+                          : hasComment
+                            ? "Edit Comment"
+                            : "+ Comment"}
+                      </button>
+                    </div>
                   ) : null}
 
                   {answerType !== "FORMAT1" || isCommentOpen ? (
