@@ -27,6 +27,15 @@ app.use(express.json({ limit: "10mb" }));
 app.use("/uploads", express.static(uploadDir));
 
 app.get("/", (_, res) => res.json({ ok: true, app: "MOD-Check-List-V1.9.2 backend" }));
+app.get("/api/health", (_, res) =>
+  res.json({
+    ok: true,
+    app: "MOD-Check-List-V1.10.5 backend",
+    cwd: process.cwd(),
+    walkthroughs: true,
+    time: new Date().toISOString(),
+  })
+);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/checklists", checklistRoutes);
