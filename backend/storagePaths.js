@@ -7,7 +7,7 @@ const storageRoot = process.env.STORAGE_DIR
 const dataDir = process.env.DATA_DIR
   ? path.resolve(process.env.DATA_DIR)
   : storageRoot
-    ? path.join(storageRoot, "data")
+    ? storageRoot
     : path.join(__dirname, "data");
 
 const uploadDir = process.env.UPLOAD_DIR
