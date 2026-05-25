@@ -112,6 +112,9 @@ export default function UserPage({ user, onLogout }: Props) {
   const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
   const [isRestoringDraft, setIsRestoringDraft] = useState(false);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const [openCommentItemIds, setOpenCommentItemIds] = useState<Record<number, boolean>>(
+    {}
+  );
   const activeAssignmentIdRef = useRef<number | null>(null);
   const latestFormRef = useRef<Record<number, FillItem>>({});
   const saveTimeoutRef = useRef<number | null>(null);
@@ -382,6 +385,24 @@ export default function UserPage({ user, onLogout }: Props) {
         [itemId]: {
           ...prev[itemId],
           answer,
+        },
+      };
+
+      if (activeAssignmentIdRef.current) {
+        persistDraft(activeAssignmentIdRef.current, nextForm);
+      }
+
+      return nextForm;
+    });
+  };
+
+  const updateComment = (itemId: number, comment: string) => {
+    setForm((prev) => {
+      const nextForm = {
+        ...prev,
+        [itemId]: {
+          ...prev[itemId],
+          comment,
         },
       };
 
@@ -819,17 +840,25 @@ export default function UserPage({ user, onLogout }: Props) {
 
               {currentSection.items.map((item, index) => (
                 <div key={item.id} style={{ ...styles.section, background: "#fffaf0" }}>
+                  {(() => {
+                    const answerType = item.answerType || item.answer_type || "FORMAT1";
+                    const itemForm = form[item.id];
+                    const hasComment = Boolean((itemForm?.comment || "").trim());
+                    const isCommentOpen = openCommentItemIds[item.id] ?? hasComment;
+
+                    return (
+                      <>
                   <strong>
                     {index + 1}. {item.question}
                   </strong>
 
-                  {(item.answerType || item.answer_type || "FORMAT1") === "FORMAT1" ? (
+                  {answerType === "FORMAT1" ? (
                     <div style={{ ...styles.row, marginTop: 10 }}>
                       {(["YES", "NO", "N/A"] as const).map((value) => (
                         <button
                           key={value}
                           type="button"
-                          style={getAnswerButtonStyle(value, form[item.id]?.answer || "")}
+                          style={getAnswerButtonStyle(value, itemForm?.answer || "")}
                           onClick={() => updateAnswer(item.id, value)}
                         >
                           {value}
@@ -838,33 +867,33 @@ export default function UserPage({ user, onLogout }: Props) {
                     </div>
                   ) : null}
 
-                  {(item.answerType || item.answer_type) === "DATE" ? (
+                  {answerType === "DATE" ? (
                     <div style={{ marginTop: 10 }}>
                       <input
                         type="date"
                         style={styles.input}
-                        value={form[item.id]?.answer || ""}
+                        value={itemForm?.answer || ""}
                         onChange={(e) => updateAnswer(item.id, e.target.value)}
                       />
                     </div>
                   ) : null}
 
-                  {(item.answerType || item.answer_type) === "TEXT" ? (
+                  {answerType === "TEXT" ? (
                     <div style={{ marginTop: 10 }}>
                       <textarea
                         style={{ ...styles.input, minHeight: 90 }}
                         placeholder="Answer"
-                        value={form[item.id]?.answer || ""}
+                        value={itemForm?.answer || ""}
                         onChange={(e) => updateAnswer(item.id, e.target.value)}
                       />
                     </div>
                   ) : null}
 
-                  {(item.answerType || item.answer_type) === "MULTIPLE_CHOICE" ? (
+                  {answerType === "MULTIPLE_CHOICE" ? (
                     <div style={{ marginTop: 10 }}>
                       <select
                         style={styles.input}
-                        value={form[item.id]?.answer || ""}
+                        value={itemForm?.answer || ""}
                         onChange={(e) => updateAnswer(item.id, e.target.value)}
                       >
                         <option value="">Select option</option>
@@ -877,7 +906,7 @@ export default function UserPage({ user, onLogout }: Props) {
                     </div>
                   ) : null}
 
-                  {(item.answerType || item.answer_type) === "RADIO_BUTTON" ? (
+                  {answerType === "RADIO_BUTTON" ? (
                     <div
                       style={{
                         display: "grid",
@@ -886,7 +915,7 @@ export default function UserPage({ user, onLogout }: Props) {
                       }}
                     >
                       {(item.options || []).map((option) => {
-                        const selectedAnswers = (form[item.id]?.answer || "")
+                        const selectedAnswers = (itemForm?.answer || "")
                           .split(",")
                           .map((value) => value.trim())
                           .filter(Boolean);
@@ -922,30 +951,46 @@ export default function UserPage({ user, onLogout }: Props) {
                     </div>
                   ) : null}
 
-                  <div style={{ marginTop: 10 }}>
-                    <textarea
-                      style={{ ...styles.input, minHeight: 80 }}
-                      placeholder="Comment"
-                      value={form[item.id]?.comment || ""}
-                      onChange={(e) =>
-                        setForm((prev) => {
-                          const nextForm = {
-                            ...prev,
-                            [item.id]: {
-                              ...prev[item.id],
-                              comment: e.target.value,
-                            },
-                          };
-
-                          if (activeAssignmentIdRef.current) {
-                            persistDraft(activeAssignmentIdRef.current, nextForm);
+                  {answerType === "FORMAT1" ? (
+                    itemForm?.answer || hasComment || openCommentItemIds[item.id] ? (
+                      <div style={{ marginTop: 10 }}>
+                        <button
+                          type="button"
+                          style={{
+                            ...styles.secondaryButton,
+                            padding: "7px 12px",
+                            fontSize: 13,
+                          }}
+                          onClick={() =>
+                            setOpenCommentItemIds((prev) => ({
+                              ...prev,
+                              [item.id]: !isCommentOpen,
+                            }))
                           }
+                        >
+                          {isCommentOpen
+                            ? "Hide Comment"
+                            : hasComment
+                              ? "Edit Comment"
+                              : "Add Comment"}
+                        </button>
+                      </div>
+                    ) : null
+                  ) : null}
 
-                          return nextForm;
-                        })
-                      }
-                    />
-                  </div>
+                  {answerType !== "FORMAT1" || isCommentOpen ? (
+                    <div style={{ marginTop: 10 }}>
+                      <textarea
+                        style={{ ...styles.input, minHeight: 80 }}
+                        placeholder="Comment"
+                        value={itemForm?.comment || ""}
+                        onChange={(e) => updateComment(item.id, e.target.value)}
+                      />
+                    </div>
+                  ) : null}
+                      </>
+                    );
+                  })()}
 
                   <div style={{ marginTop: 12 }}>
                     <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>

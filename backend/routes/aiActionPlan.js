@@ -130,6 +130,58 @@ function findDepartment(profile, name) {
   });
 }
 
+function isTurkishText(value) {
+  const text = normalizeText(value).toLowerCase();
+  if (!text) return false;
+
+  if (/[çğıöşü]/i.test(text)) return true;
+
+  const turkishSignals = [
+    "temiz",
+    "duzen",
+    "düzen",
+    "yangin",
+    "yangın",
+    "acil",
+    "ariza",
+    "arıza",
+    "hasar",
+    "eksik",
+    "sizinti",
+    "sızıntı",
+    "tamir",
+    "bakim",
+    "bakım",
+    "oda",
+    "mutfak",
+    "guvenlik",
+    "güvenlik",
+  ];
+
+  return turkishSignals.some((signal) => text.includes(signal));
+}
+
+function isOperationsDepartment(name) {
+  return normalizeText(name).toLowerCase() === "operations";
+}
+
+function resolveOperationsDepartment(profile, item) {
+  const text = `${item.sectionTitle || item.section_title || ""} ${item.question || ""} ${item.comment || ""}`;
+  const departmentName = isTurkishText(text) ? "Teknik" : "Maintenance";
+  const existingDepartment = findDepartment(profile, departmentName);
+
+  if (existingDepartment) return existingDepartment;
+
+  return {
+    name: departmentName,
+    ownerRole: departmentName === "Teknik" ? "Teknik Sorumlusu" : "Maintenance Supervisor",
+    owns:
+      departmentName === "Teknik"
+        ? "bakim, onarim, teknik ariza, ekipman, tesis, fiziksel kusurlar"
+        : "maintenance, repairs, equipment, facilities, technical defects, physical issues",
+  };
+}
+
 function fallbackDepartment(item, profile) {
   const text = `${item.sectionTitle || item.section_title || ""} ${item.question || ""} ${item.comment || ""}`.toLowerCase();
   const section = normalizeText(item.sectionTitle || item.section_title).toLowerCase();
@@ -169,10 +221,7 @@ function fallbackDepartment(item, profile) {
     };
   }
 
-  const operations = findDepartment(profile, "Operations") || departments[0] || {
-    name: "Operations",
-    ownerRole: "Operations Supervisor",
-  };
+  const operations = resolveOperationsDepartment(profile, item);
 
   return {
     ...operations,
@@ -196,7 +245,7 @@ function fallbackDuration(item, departmentName) {
   if (/(document|invoice|payment|fatura|odeme|record)/i.test(text)) return 60;
   if (/(fire|alarm|emergency|unsafe|safety|yangin|acil)/i.test(text)) return 60;
   if (/(broken|repair|leak|electric|hvac|klima|ariza|tamir)/i.test(text)) return 120;
-  if (departmentName === "Operations") return 60;
+  if (["Maintenance", "Teknik"].includes(departmentName)) return 60;
   return 45;
 }
 
@@ -258,8 +307,12 @@ function normalizeActionPlans(report, failedItems, actionPlans, profile) {
 
   return fallback.map((base, index) => {
     const plan = plans[index] || {};
-    const departmentName = normalizeText(plan.department) || base.department;
-    const department = findDepartment(profile, departmentName);
+    const rawDepartmentName = normalizeText(plan.department) || base.department;
+    const resolvedDepartment = isOperationsDepartment(rawDepartmentName)
+      ? resolveOperationsDepartment(profile, failedItems[index] || {})
+      : null;
+    const departmentName = resolvedDepartment?.name || rawDepartmentName;
+    const department = resolvedDepartment || findDepartment(profile, departmentName);
     const priority = normalizeText(plan.priority) || base.priority;
     const estimatedDurationMinutes = Number.isFinite(Number(plan.estimatedDurationMinutes))
       ? Number(plan.estimatedDurationMinutes)
@@ -270,7 +323,9 @@ function normalizeActionPlans(report, failedItems, actionPlans, profile) {
       failedItemId: normalizeText(plan.failedItemId) || base.failedItemId,
       issue: normalizeText(plan.issue) || base.issue,
       department: departmentName,
-      owner: normalizeText(plan.owner) || department?.ownerRole || base.owner,
+      owner: resolvedDepartment
+        ? resolvedDepartment.ownerRole
+        : normalizeText(plan.owner) || department?.ownerRole || base.owner,
       departmentReason: normalizeText(plan.departmentReason) || base.departmentReason,
       rootCause: normalizeText(plan.rootCause) || base.rootCause,
       correctiveAction: normalizeText(plan.correctiveAction) || base.correctiveAction,
@@ -316,6 +371,7 @@ function buildAiPayload(report, failedItems, profile) {
             "confidence must be High, Medium, or Low",
             "departmentReason must briefly explain why the selected department owns the issue",
             "avoid Responsible team, General team, or generic ownership",
+            "if the selected department would be Operations, use Maintenance for English items and Teknik for Turkish items",
           ],
           expectedShape: {
             actionPlans: [
