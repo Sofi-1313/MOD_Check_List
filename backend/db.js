@@ -78,6 +78,32 @@ CREATE TABLE IF NOT EXISTS draft_reports (
   FOREIGN KEY (assignment_id) REFERENCES assignments(id),
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS walkthrough_reports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  created_by_user_id INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  status TEXT NOT NULL,
+  FOREIGN KEY (created_by_user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS walkthrough_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  walkthrough_report_id INTEGER NOT NULL,
+  row_type TEXT NOT NULL,
+  section_title TEXT,
+  comment TEXT,
+  sort_order INTEGER NOT NULL,
+  FOREIGN KEY (walkthrough_report_id) REFERENCES walkthrough_reports(id)
+);
+
+CREATE TABLE IF NOT EXISTS walkthrough_photos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  walkthrough_item_id INTEGER NOT NULL,
+  file_path TEXT NOT NULL,
+  FOREIGN KEY (walkthrough_item_id) REFERENCES walkthrough_items(id)
+);
 `);
 
 /**

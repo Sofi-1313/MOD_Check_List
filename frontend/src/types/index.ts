@@ -129,3 +129,22 @@ export type DraftChecklist = {
   >;
   updatedAt: string;
 };
+
+export type WalkThroughItem = {
+  id?: number;
+  rowType: "section" | "comment";
+  sectionTitle?: string;
+  comment?: string;
+  photos: string[];
+  sortOrder?: number;
+};
+
+export type WalkThroughReport = {
+  id: number;
+  title: string;
+  createdByUserId: number;
+  createdByName: string;
+  createdAt: string;
+  status: string;
+  items: WalkThroughItem[];
+};

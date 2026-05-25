@@ -3,6 +3,7 @@ import { AnswerType, Assignment, Checklist, Report, User } from "../types";
 import { styles } from "../styles/appStyles";
 import DashboardShell from "../components/DashboardShell";
 import ReportDetail from "../components/ReportDetail";
+import WalkThroughPage from "../components/WalkThroughPage";
 import { getAssignments } from "../services/assignmentService";
 import { getChecklists } from "../services/checklistService";
 import { apiPost, FILE_BASE, uploadPhotos } from "../services/api";
@@ -107,6 +108,7 @@ export default function UserPage({ user, onLogout }: Props) {
   const [expandedAssignmentId, setExpandedAssignmentId] = useState<number | null>(null);
   const [expandedChecklistId, setExpandedChecklistId] = useState<number | null>(null);
   const [expandedReportId, setExpandedReportId] = useState<number | null>(null);
+  const [activeUserPage, setActiveUserPage] = useState<"dashboard" | "walkthrough">("dashboard");
   const [form, setForm] = useState<Record<number, FillItem>>({});
   const [message, setMessage] = useState("");
   const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
@@ -521,7 +523,33 @@ export default function UserPage({ user, onLogout }: Props) {
         <div style={{ ...styles.section, background: "#dbe9d2" }}>{message}</div>
       ) : null}
 
-      {selectedReport ? (
+      <div style={{ ...styles.row, marginTop: 14 }}>
+        <button
+          type="button"
+          style={activeUserPage === "dashboard" ? styles.button : styles.secondaryButton}
+          onClick={() => {
+            setActiveUserPage("dashboard");
+            setSelectedReport(null);
+          }}
+        >
+          Dashboard
+        </button>
+        <button
+          type="button"
+          style={activeUserPage === "walkthrough" ? styles.button : styles.secondaryButton}
+          onClick={() => {
+            setActiveUserPage("walkthrough");
+            setSelectedReport(null);
+            setActiveAssignmentId(null);
+          }}
+        >
+          Walk-Through
+        </button>
+      </div>
+
+      {activeUserPage === "walkthrough" ? (
+        <WalkThroughPage />
+      ) : selectedReport ? (
         <ReportDetail
           report={selectedReport}
           onBack={() => setSelectedReport(null)}

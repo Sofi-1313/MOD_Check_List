@@ -11,6 +11,7 @@ const checklistRoutes = require("./routes/checklists");
 const assignmentRoutes = require("./routes/assignments");
 const draftRoutes = require("./routes/drafts");
 const reportRoutes = require("./routes/reports");
+const walkthroughRoutes = require("./routes/walkthroughs");
 const uploadRoutes = require("./routes/uploads");
 const aiActionPlanRoutes = require("./routes/aiActionPlan");
 const { startUploadCleanup } = require("./services/uploadCleanup");
@@ -32,6 +33,7 @@ app.use("/api/checklists", checklistRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/drafts", draftRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/walkthroughs", walkthroughRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/ai", aiActionPlanRoutes);
 
@@ -41,6 +43,7 @@ app.use("/checklists", checklistRoutes);
 app.use("/assignments", assignmentRoutes);
 app.use("/drafts", draftRoutes);
 app.use("/reports", reportRoutes);
+app.use("/walkthroughs", walkthroughRoutes);
 app.use("/ai", aiActionPlanRoutes);
 
 if (hasBuiltFrontend) {

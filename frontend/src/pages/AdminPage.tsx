@@ -4,6 +4,7 @@ import { AnswerType, Assignment, Checklist, Report, User } from "../types";
 import { styles } from "../styles/appStyles";
 import DashboardShell from "../components/DashboardShell";
 import ReportDetail from "../components/ReportDetail";
+import WalkThroughPage from "../components/WalkThroughPage";
 import { createAssignment, getAssignments } from "../services/assignmentService";
 import {
   createChecklist,
@@ -35,7 +36,7 @@ type QuestionForm = {
   options: string[];
 };
 
-type AdminSectionKey = "templates" | "assignments" | "users" | "reports";
+type AdminSectionKey = "templates" | "assignments" | "users" | "reports" | "walkthrough";
 
 const ANSWER_TYPE_LABELS: Record<AnswerType, string> = {
   FORMAT1: "Yes / No / N/A",
@@ -69,6 +70,11 @@ const ADMIN_SECTIONS: Array<{
     key: "reports",
     label: "Completed Reports",
     description: "Review reports and export files",
+  },
+  {
+    key: "walkthrough",
+    label: "Walk-Through",
+    description: "Create on the go inspection notes",
   },
 ];
 
@@ -960,6 +966,8 @@ export default function AdminPage({ user, onLogout }: Props) {
               {error}
             </div>
           ) : null}
+
+          {activeAdminPage === "walkthrough" ? <WalkThroughPage /> : null}
 
           {activeAdminPage === "templates" ? (
             <>
