@@ -9,6 +9,19 @@ type Props = {
 };
 
 export default function DashboardShell({ user, onLogout, children }: Props) {
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+    try {
+      await onLogout();
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <div style={styles.page}>
       <div style={styles.card}>
@@ -16,7 +29,14 @@ export default function DashboardShell({ user, onLogout, children }: Props) {
           <div>
             <div style={styles.small}>Logged in as {user.name} ({user.role})</div>
           </div>
-          <button style={styles.secondaryButton} onClick={onLogout}>Logout</button>
+          <button
+            className="logout-button"
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+          >
+            {isLoggingOut ? "Logging out..." : "Logout"}
+          </button>
         </div>
         {children}
       </div>

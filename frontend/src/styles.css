@@ -28,6 +28,45 @@ textarea {
   font: inherit;
 }
 
+.logout-button {
+  max-width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #24593d;
+  border-radius: 10px;
+  background: #2f6f4e;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+  white-space: normal;
+  box-shadow: 0 4px 10px rgba(47, 111, 78, 0.18);
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.08s ease;
+}
+
+.logout-button:hover:not(:disabled) {
+  background: #24593d;
+  border-color: #1f4f35;
+  box-shadow: 0 6px 14px rgba(47, 111, 78, 0.26);
+}
+
+.logout-button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 2px 6px rgba(47, 111, 78, 0.22);
+}
+
+.logout-button:focus-visible {
+  outline: 3px solid rgba(47, 111, 78, 0.32);
+  outline-offset: 2px;
+}
+
+.logout-button:disabled {
+  cursor: wait;
+  opacity: 0.82;
+}
+
 @media (max-width: 768px) {
   .responsive-shell-top,
   .responsive-report-top {
