@@ -876,9 +876,14 @@ export default function UserPage({ user, onLogout }: Props) {
 
                     return (
                       <>
-                  <strong>
-                    {index + 1}. {item.question}
-                  </strong>
+                        <div style={styles.questionSectionLabel}>
+                          {currentSection.title}
+                        </div>
+                        <div>
+                          <strong>
+                            {index + 1}. {item.question}
+                          </strong>
+                        </div>
 
                   {answerType === "FORMAT1" ? (
                     <div style={{ ...styles.row, marginTop: 10 }}>
