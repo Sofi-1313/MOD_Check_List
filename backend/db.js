@@ -47,7 +47,6 @@ CREATE TABLE IF NOT EXISTS assignments (
   assigned_by_user_id INTEGER NOT NULL,
   assigned_at TEXT NOT NULL,
   status TEXT NOT NULL,
-  assignment_type TEXT NOT NULL DEFAULT 'assigned',
   FOREIGN KEY (checklist_id) REFERENCES checklists(id),
   FOREIGN KEY (assigned_to_user_id) REFERENCES users(id),
   FOREIGN KEY (assigned_by_user_id) REFERENCES users(id)
@@ -268,15 +267,6 @@ const hasChecklistImagePath = checklistColumns.some(
 
 if (!hasChecklistImagePath) {
   db.exec(`ALTER TABLE checklists ADD COLUMN image_path TEXT;`);
-}
-
-const assignmentColumns = db.prepare(`PRAGMA table_info(assignments)`).all();
-const hasAssignmentType = assignmentColumns.some(
-  (column) => column.name === "assignment_type"
-);
-
-if (!hasAssignmentType) {
-  db.exec(`ALTER TABLE assignments ADD COLUMN assignment_type TEXT NOT NULL DEFAULT 'assigned';`);
 }
 
 module.exports = db;

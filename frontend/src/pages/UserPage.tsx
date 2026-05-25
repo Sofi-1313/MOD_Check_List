@@ -104,7 +104,6 @@ export default function UserPage({ user, onLogout }: Props) {
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [activeAssignmentId, setActiveAssignmentId] = useState<number | null>(null);
-  const [activeSelfAuditChecklistId, setActiveSelfAuditChecklistId] = useState<number | null>(null);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [expandedAssignmentId, setExpandedAssignmentId] = useState<number | null>(null);
   const [expandedChecklistId, setExpandedChecklistId] = useState<number | null>(null);
@@ -149,17 +148,9 @@ export default function UserPage({ user, onLogout }: Props) {
   }, [form]);
 
   const activeChecklist = useMemo(() => {
-    if (activeAssignment) {
-      return checklists.find((c) => c.id === activeAssignment.checklist_id) || null;
-    }
-
-    if (activeSelfAuditChecklistId) {
-      return checklists.find((c) => c.id === activeSelfAuditChecklistId) || null;
-    }
-
-    return null;
-  }, [activeAssignment, activeSelfAuditChecklistId, checklists]);
-  const isSelfAudit = Boolean(activeSelfAuditChecklistId && !activeAssignment);
+    if (!activeAssignment) return null;
+    return checklists.find((c) => c.id === activeAssignment.checklist_id) || null;
+  }, [activeAssignment, checklists]);
 
   const activeSections = activeChecklist?.sections || [];
   const currentSection = activeSections[currentSectionIndex] || null;
@@ -257,7 +248,10 @@ export default function UserPage({ user, onLogout }: Props) {
     scheduleRemoteDraftSave(assignmentId, nextForm);
   }
 
-  function createInitialForm(checklist: Checklist) {
+  const openAssignment = async (assignment: Assignment) => {
+    const checklist = checklists.find((c) => c.id === assignment.checklist_id);
+    if (!checklist) return;
+
     const initial: Record<number, FillItem> = {};
 
     checklist.sections.forEach((section) => {
@@ -275,36 +269,10 @@ export default function UserPage({ user, onLogout }: Props) {
       });
     });
 
-    return initial;
-  }
-
-  const openSelfAudit = (checklist: Checklist) => {
-    const initial = createInitialForm(checklist);
-
-    setSelectedReport(null);
-    setActiveAssignmentId(null);
-    activeAssignmentIdRef.current = null;
-    setActiveSelfAuditChecklistId(checklist.id);
-    setCurrentSectionIndex(0);
-    setOpenCommentItemIds({});
-    setForm(initial);
-    latestFormRef.current = initial;
-    setMessage("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const openAssignment = async (assignment: Assignment) => {
-    const checklist = checklists.find((c) => c.id === assignment.checklist_id);
-    if (!checklist) return;
-
-    const initial = createInitialForm(checklist);
-
     setIsRestoringDraft(true);
     setSelectedReport(null);
-    setActiveSelfAuditChecklistId(null);
     setActiveAssignmentId(assignment.id);
     setCurrentSectionIndex(0);
-    setOpenCommentItemIds({});
 
     let merged = initial;
     const localDrafts = readLocalDrafts();
@@ -475,7 +443,7 @@ export default function UserPage({ user, onLogout }: Props) {
   };
 
   const submit = async () => {
-    if (!activeChecklist || (!activeAssignment && !isSelfAudit)) return;
+    if (!activeChecklist || !activeAssignment) return;
 
     const items = activeChecklist.sections.flatMap((section) =>
       section.items.map((item) => ({
@@ -486,19 +454,15 @@ export default function UserPage({ user, onLogout }: Props) {
     );
 
     await apiPost("/reports", {
-      assignmentId: activeAssignment?.id,
-      checklistId: isSelfAudit ? activeChecklist.id : undefined,
+      assignmentId: activeAssignment.id,
       items,
     });
 
-    if (activeAssignment) {
-      await deleteDraft(activeAssignment.id).catch(() => null);
-      removeLocalDraft(activeAssignment.id);
-    }
+    await deleteDraft(activeAssignment.id).catch(() => null);
+    removeLocalDraft(activeAssignment.id);
 
-    setMessage(isSelfAudit ? "Self Audit completed." : "Checklist completed.");
+    setMessage("Checklist completed.");
     setActiveAssignmentId(null);
-    setActiveSelfAuditChecklistId(null);
     setForm({});
     setCurrentSectionIndex(0);
     await load();
@@ -577,7 +541,6 @@ export default function UserPage({ user, onLogout }: Props) {
             setActiveUserPage("walkthrough");
             setSelectedReport(null);
             setActiveAssignmentId(null);
-            setActiveSelfAuditChecklistId(null);
           }}
         >
           Walk-Through
@@ -592,7 +555,7 @@ export default function UserPage({ user, onLogout }: Props) {
           onBack={() => setSelectedReport(null)}
           onDownloadPdf={handleDownloadPdf}
         />
-      ) : !activeChecklist ? (
+      ) : !activeAssignment || !activeChecklist ? (
         <>
           <div style={styles.section}>
             <h3 style={styles.title}>My Assignments</h3>
@@ -717,16 +680,6 @@ export default function UserPage({ user, onLogout }: Props) {
                               </div>
                             ))}
                           </div>
-
-                          <div style={styles.compactActions}>
-                            <button
-                              type="button"
-                              style={styles.button}
-                              onClick={() => openSelfAudit(checklist)}
-                            >
-                              Start Self Audit
-                            </button>
-                          </div>
                         </div>
                       ) : null}
                     </div>
@@ -758,7 +711,6 @@ export default function UserPage({ user, onLogout }: Props) {
                             {r.checklistTitle}
                           </span>
                           <span style={styles.compactRowMeta}>
-                            {r.assignmentType === "self_audit" ? "Self Audit - " : ""}
                             Completed By: {r.completedByName}
                           </span>
                         </span>
@@ -816,11 +768,6 @@ export default function UserPage({ user, onLogout }: Props) {
             />
           ) : null}
           <h3 style={styles.title}>{activeChecklist.title}</h3>
-          {isSelfAudit ? (
-            <div style={{ ...styles.small, marginBottom: 10 }}>
-              Self Audit - no assignment required
-            </div>
-          ) : null}
 
           <div
             style={{
@@ -1154,10 +1101,8 @@ export default function UserPage({ user, onLogout }: Props) {
               style={styles.secondaryButton}
               onClick={() => {
                 setActiveAssignmentId(null);
-                setActiveSelfAuditChecklistId(null);
                 setCurrentSectionIndex(0);
-                setForm({});
-                setMessage(isSelfAudit ? "Self Audit cancelled." : "Checklist draft saved.");
+                setMessage("Checklist draft saved.");
               }}
             >
               Cancel
@@ -1174,7 +1119,7 @@ export default function UserPage({ user, onLogout }: Props) {
 
             {isLastSection ? (
               <button style={styles.button} onClick={submit}>
-                {isSelfAudit ? "Complete Self Audit" : "Complete Checklist"}
+                Complete Checklist
               </button>
             ) : (
               <button

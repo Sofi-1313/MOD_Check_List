@@ -1665,7 +1665,6 @@ export default function AdminPage({ user, onLogout }: Props) {
                             {r.checklistTitle}
                           </span>
                           <span style={styles.compactRowMeta}>
-                            {r.assignmentType === "self_audit" ? "Self Audit - " : ""}
                             Completed By: {r.completedByName}
                           </span>
                         </span>
@@ -1677,10 +1676,7 @@ export default function AdminPage({ user, onLogout }: Props) {
                       {isExpanded ? (
                         <div style={styles.compactRowBody}>
                           <div style={styles.small}>
-                            {r.assignmentType === "self_audit"
-                              ? "Self Audit"
-                              : `Assigned To: ${r.assignedToName}`}{" "}
-                            - Status: {r.status}
+                            Assigned To: {r.assignedToName} - Status: {r.status}
                           </div>
                           <div style={styles.compactActions}>
                             <button

@@ -23,7 +23,6 @@ type Report = {
   completed_at?: string;
   completedAt?: string;
   status: string;
-  assignmentType?: "assigned" | "self_audit";
   items: ReportItem[];
 };
 
@@ -172,11 +171,6 @@ export default function ReportDetail({
           marginBottom: 16,
         }}
       >
-        {report.assignmentType === "self_audit" ? (
-          <div>
-            <strong>Audit Type:</strong> Self Audit
-          </div>
-        ) : null}
         <div>
           <strong>Completed By:</strong> {report.completedByName}
         </div>

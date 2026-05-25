@@ -54,7 +54,6 @@ export type Assignment = {
   assigned_by_user_id: number;
   assigned_at: string;
   status: "assigned" | "completed";
-  assignmentType?: "assigned" | "self_audit";
   checklistTitle: string;
   checklistImagePath?: string;
   assignedToName: string;
@@ -70,7 +69,6 @@ export type Report = {
   assignedByName: string;
   completed_at: string;
   status: string;
-  assignmentType?: "assigned" | "self_audit";
   items: Array<{
     id: number;
     checklist_item_id: number;

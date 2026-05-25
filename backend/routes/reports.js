@@ -12,7 +12,6 @@ router.get("/", authRequired, (req, res) => {
       r.completed_by_user_id,
       r.completed_at,
       r.status,
-      a.assignment_type as assignmentType,
       c.title as checklistTitle,
       c.image_path as checklistImagePath,
       u1.name as completedByName,
@@ -51,44 +50,19 @@ router.get("/", authRequired, (req, res) => {
 });
 
 router.post("/", authRequired, (req, res) => {
-  const { assignmentId, checklistId, completedByUserId, items = [] } = req.body || {};
+  const { assignmentId, completedByUserId, items = [] } = req.body || {};
 
-  if ((!assignmentId && !checklistId) || !Array.isArray(items) || items.length === 0) {
+  if (!assignmentId || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({
-      message: "assignmentId or checklistId and items are required",
+      message: "assignmentId and items are required",
     });
-  }
-
-  let reportAssignmentId = assignmentId;
-
-  if (!reportAssignmentId) {
-    const checklist = db.prepare("SELECT id FROM checklists WHERE id = ?").get(checklistId);
-
-    if (!checklist) {
-      return res.status(404).json({ message: "Checklist not found" });
-    }
-
-    const assignmentResult = db.prepare(`
-      INSERT INTO assignments
-        (checklist_id, assigned_to_user_id, assigned_by_user_id, assigned_at, status, assignment_type)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(
-      checklistId,
-      req.user.id,
-      req.user.id,
-      new Date().toISOString(),
-      "completed",
-      "self_audit"
-    );
-
-    reportAssignmentId = assignmentResult.lastInsertRowid;
   }
 
   const reportResult = db.prepare(`
     INSERT INTO reports (assignment_id, completed_by_user_id, completed_at, status)
     VALUES (?, ?, ?, ?)
   `).run(
-    reportAssignmentId,
+    assignmentId,
     completedByUserId || req.user.id,
     new Date().toISOString(),
     "Completed"
@@ -122,7 +96,7 @@ router.post("/", authRequired, (req, res) => {
     });
   });
 
-  db.prepare("UPDATE assignments SET status = ? WHERE id = ?").run("completed", reportAssignmentId);
+  db.prepare("UPDATE assignments SET status = ? WHERE id = ?").run("completed", assignmentId);
 
   res.json({
     success: true,

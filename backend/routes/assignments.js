@@ -13,7 +13,6 @@ router.get("/", authRequired, (req, res) => {
       a.assigned_by_user_id,
       a.assigned_at,
       a.status,
-      a.assignment_type as assignmentType,
       c.title as checklistTitle,
       c.image_path as checklistImagePath,
       u1.name as assignedToName,
@@ -25,18 +24,9 @@ router.get("/", authRequired, (req, res) => {
   `;
 
   if (req.user.role === "admin") {
-    return res.json(
-      db.prepare(baseQuery + " WHERE a.assignment_type = ? ORDER BY a.id DESC").all("assigned")
-    );
+    return res.json(db.prepare(baseQuery + " ORDER BY a.id DESC").all());
   }
-  res.json(
-    db
-      .prepare(
-        baseQuery +
-          " WHERE a.assigned_to_user_id = ? AND a.assignment_type = ? ORDER BY a.id DESC"
-      )
-      .all(req.user.id, "assigned")
-  );
+  res.json(db.prepare(baseQuery + " WHERE a.assigned_to_user_id = ? ORDER BY a.id DESC").all(req.user.id));
 });
 
 router.post("/", authRequired, adminOnly, (req, res) => {
