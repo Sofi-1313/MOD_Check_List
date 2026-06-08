@@ -23,6 +23,9 @@ export async function me() {
 export async function logout() {
   try {
     await apiPost("/auth/logout", {});
+  } catch {
+    // Local logout should still complete if the server session is already gone
+    // or the API is temporarily unreachable.
   } finally {
     localStorage.removeItem("mod_token");
     localStorage.removeItem("mod_session");
