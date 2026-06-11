@@ -26,7 +26,9 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use("/uploads", express.static(uploadDir));
 
-app.get("/", (_, res) => res.json({ ok: true, app: "MOD-Check-List-V1.9.2 backend" }));
+app.get("/api", (_, res) =>
+  res.json({ ok: true, app: "MOD-Check-List-V1.10.5 backend" })
+);
 app.get("/api/health", (_, res) =>
   res.json({
     ok: true,
