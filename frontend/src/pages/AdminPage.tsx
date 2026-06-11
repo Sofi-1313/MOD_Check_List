@@ -17,6 +17,7 @@ import { deleteReport, getReports } from "../services/reportService";
 import { createUser, deleteUser, getUsers, updateUser } from "../services/userService";
 import { generateChecklistPdf } from "../utils/generateChecklistPdf";
 import { generateAiActionPlan } from "../services/aiActionPlanService";
+import { importChecklistWithAi } from "../services/aiChecklistImportService";
 import { exportActionPlansToExcel } from "../services/exportService";
 import { FILE_BASE, uploadPhotos } from "../services/api";
 
@@ -99,31 +100,6 @@ function normalizeQuestionForm(item: {
   };
 }
 
-function extractImportedQuestions(rows: unknown[][]) {
-  const normalizedRows = rows
-    .map((row) => row.map((cell) => String(cell || "").trim()))
-    .filter((row) => row.some(Boolean));
-
-  if (normalizedRows.length === 0) return [];
-
-  const firstRow = normalizedRows[0].map((cell) => cell.toLowerCase());
-  const questionColumnIndex = firstRow.findIndex((cell) =>
-    ["question", "questions", "soru", "sorular"].includes(cell)
-  );
-  const hasHeader = questionColumnIndex >= 0;
-  const columnIndex = hasHeader
-    ? questionColumnIndex
-    : normalizedRows[0].findIndex(Boolean);
-  const sourceRows = hasHeader ? normalizedRows.slice(1) : normalizedRows;
-
-  if (columnIndex < 0) return [];
-
-  return sourceRows
-    .map((row) => row[columnIndex])
-    .map((question) => String(question || "").trim())
-    .filter(Boolean);
-}
-
 function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
   if (
     fromIndex < 0 ||
@@ -178,6 +154,7 @@ export default function AdminPage({ user, onLogout }: Props) {
   const [title, setTitle] = useState("");
   const [templateImagePath, setTemplateImagePath] = useState("");
   const [templateImageUploading, setTemplateImageUploading] = useState(false);
+  const [checklistImporting, setChecklistImporting] = useState(false);
   const [sections, setSections] = useState<SectionForm[]>([
     {
       title: "",
@@ -502,42 +479,53 @@ export default function AdminPage({ user, onLogout }: Props) {
     setError("");
 
     try {
+      setChecklistImporting(true);
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
-      const firstSheetName = workbook.SheetNames[0];
-
-      if (!firstSheetName) {
+      if (workbook.SheetNames.length === 0) {
         setError("Excel file does not contain a sheet.");
         return;
       }
 
-      const rows = XLSX.utils.sheet_to_json<unknown[]>(
-        workbook.Sheets[firstSheetName],
-        { header: 1, blankrows: false }
+      const imported = await importChecklistWithAi(
+        file.name,
+        workbook.SheetNames.map((sheetName) => ({
+          name: sheetName,
+          rows: XLSX.utils.sheet_to_json<unknown[]>(
+            workbook.Sheets[sheetName],
+            { header: 1, blankrows: false, defval: "" }
+          ),
+        }))
       );
-      const importedQuestions = extractImportedQuestions(rows);
-
-      if (importedQuestions.length === 0) {
-        setError("No questions found. Use a 'Question' column or put questions in the first column.");
-        return;
-      }
 
       setEditingId(null);
-      setTitle((currentTitle) => currentTitle || "Imported Template");
-      setSections([
-        {
-          title: "Imported Questions",
-          items: importedQuestions.map((question) => ({
-            question,
-            answerType: "FORMAT1",
-            options: [""],
+      setTitle(
+        imported.title ||
+          file.name.replace(/\.(xlsx|xls|csv)$/i, "").trim() ||
+          "Imported Template"
+      );
+      setSections(
+        imported.sections.map((section) => ({
+          title: section.title,
+          items: section.items.map((item) => ({
+            question: item.question,
+            answerType: item.answerType,
+            options: item.options.length ? item.options : [""],
           })),
-        },
-      ]);
+        }))
+      );
       setActiveAdminPage("templates");
-      setMessage(`${importedQuestions.length} questions imported. Review sections and question types before saving.`);
+      setMessage(
+        `${imported.rowCount} rows imported into ${imported.sections.length} sections. ${
+          imported.provider === "fallback"
+            ? "AI credentials are not configured; smart column and section detection was used."
+            : "AI reviewed every row."
+        } Review the result before saving.`
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Excel import failed");
+    } finally {
+      setChecklistImporting(false);
     }
   };
 
@@ -990,13 +978,16 @@ export default function AdminPage({ user, onLogout }: Props) {
               <input
                 type="file"
                 accept=".xlsx,.xls,.csv"
+                disabled={checklistImporting}
                 onChange={(e) => {
                   handleImportQuestionsFromExcel(e.target.files?.[0] || null);
                   e.target.value = "";
                 }}
               />
               <div style={{ ...styles.small, marginTop: 8 }}>
-                Excel can contain only a Question column, or questions in the first filled column.
+                {checklistImporting
+                  ? "AI is reviewing rows and creating sections..."
+                  : "AI reviews every checklist row, creates sections, and preserves standards or limits found in the Excel file."}
               </div>
             </div>
 

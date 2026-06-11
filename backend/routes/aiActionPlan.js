@@ -1,5 +1,10 @@
 const express = require("express");
 const { authRequired, adminOnly } = require("../middleware/auth");
+const {
+  buildChecklistImportPayload,
+  extractSourceItems,
+  normalizeImportedSections,
+} = require("../services/checklistImport");
 
 const router = express.Router();
 
@@ -300,6 +305,68 @@ function extractJson(content) {
   return null;
 }
 
+async function callAzureOpenAiWithPayload(payload) {
+  const apiKey = process.env.AZURE_OPENAI_API_KEY;
+  const endpoint = normalizeText(process.env.AZURE_OPENAI_ENDPOINT).replace(/\/$/, "");
+  const deployment = normalizeText(process.env.AZURE_OPENAI_DEPLOYMENT);
+
+  if (!apiKey || !endpoint || !deployment) return null;
+
+  const apiVersion = process.env.AZURE_OPENAI_API_VERSION || DEFAULT_AZURE_API_VERSION;
+  const response = await fetch(
+    `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`,
+    {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data?.error?.message || "Azure OpenAI request failed");
+  }
+
+  return extractJson(data.choices?.[0]?.message?.content);
+}
+
+async function callOpenAiWithPayload(payload) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+
+  const response = await fetch(OPENAI_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+      ...payload,
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data?.error?.message || "OpenAI request failed");
+  }
+
+  return extractJson(data.choices?.[0]?.message?.content);
+}
+
+async function callAiWithPayload(payload) {
+  const azureResult = await callAzureOpenAiWithPayload(payload);
+  if (azureResult) return { provider: "azure-openai", result: azureResult };
+
+  const openAiResult = await callOpenAiWithPayload(payload);
+  if (openAiResult) return { provider: "openai", result: openAiResult };
+
+  return { provider: "fallback", result: null };
+}
+
 function normalizeActionPlans(report, failedItems, actionPlans, profile) {
   const fallback = fallbackPlan(report, failedItems, profile);
   const plans = Array.isArray(actionPlans) ? actionPlans : [];
@@ -512,6 +579,54 @@ router.post("/action-plan", authRequired, adminOnly, async (req, res) => {
   } catch (err) {
     return res.status(502).json({
       message: err instanceof Error ? err.message : "AI action plan could not be generated",
+    });
+  }
+});
+
+router.post("/checklist-import", authRequired, adminOnly, async (req, res) => {
+  const { fileName = "", sheets = [] } = req.body || {};
+  const sourceItems = extractSourceItems(sheets);
+
+  if (sourceItems.length === 0) {
+    return res.status(400).json({
+      message: "Excel file does not contain recognizable checklist rows",
+    });
+  }
+
+  if (sourceItems.length > 1000) {
+    return res.status(400).json({
+      message: "A maximum of 1000 checklist rows can be imported at once",
+    });
+  }
+
+  try {
+    const ai = await callAiWithPayload(
+      buildChecklistImportPayload(sourceItems, fileName)
+    );
+    const sections = normalizeImportedSections(
+      sourceItems,
+      ai.result?.sections
+    ).map((section) => ({
+      title: section.title,
+      items: section.items.map(({ question, answerType, options }) => ({
+        question,
+        answerType,
+        options,
+      })),
+    }));
+
+    return res.json({
+      provider: ai.provider,
+      title: normalizeText(ai.result?.title),
+      rowCount: sourceItems.length,
+      sections,
+    });
+  } catch (err) {
+    return res.status(502).json({
+      message:
+        err instanceof Error
+          ? err.message
+          : "AI checklist import could not be completed",
     });
   }
 });
