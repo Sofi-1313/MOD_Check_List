@@ -4,7 +4,7 @@ import { styles } from "../styles/appStyles";
 import DashboardShell from "../components/DashboardShell";
 import ReportDetail from "../components/ReportDetail";
 import WalkThroughPage from "../components/WalkThroughPage";
-import { getAssignments } from "../services/assignmentService";
+import { getAssignments, selfSelectAssignment } from "../services/assignmentService";
 import { getChecklists } from "../services/checklistService";
 import { apiPost, FILE_BASE, uploadPhotos } from "../services/api";
 import {
@@ -112,6 +112,7 @@ export default function UserPage({ user, onLogout }: Props) {
   const [form, setForm] = useState<Record<number, FillItem>>({});
   const [message, setMessage] = useState("");
   const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
+  const [startingChecklistId, setStartingChecklistId] = useState<number | null>(null);
   const [isRestoringDraft, setIsRestoringDraft] = useState(false);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [openCommentItemIds, setOpenCommentItemIds] = useState<Record<number, boolean>>(
@@ -329,6 +330,34 @@ export default function UserPage({ user, onLogout }: Props) {
       latestFormRef.current = merged;
       writeLocalDraft(assignment.id, merged);
       setIsRestoringDraft(false);
+    }
+  };
+
+  const startTemplate = async (checklist: Checklist) => {
+    try {
+      setStartingChecklistId(checklist.id);
+      const response = await selfSelectAssignment(checklist.id);
+      const assignment = response.assignment;
+
+      setAssignments((prev) => {
+        const exists = prev.some((item) => item.id === assignment.id);
+        return exists
+          ? prev.map((item) => (item.id === assignment.id ? assignment : item))
+          : [assignment, ...prev];
+      });
+
+      setExpandedChecklistId(null);
+      setMessage(
+        response.reused
+          ? "Existing checklist draft opened."
+          : "Template selected. You can start filling it now."
+      );
+      await openAssignment(assignment);
+    } catch (error) {
+      console.error(error);
+      setMessage("Template could not be opened. Please try again.");
+    } finally {
+      setStartingChecklistId(null);
     }
   };
 
@@ -679,6 +708,19 @@ export default function UserPage({ user, onLogout }: Props) {
                                 </div>
                               </div>
                             ))}
+                          </div>
+
+                          <div style={styles.compactActions}>
+                            <button
+                              type="button"
+                              style={styles.button}
+                              onClick={() => startTemplate(checklist)}
+                              disabled={startingChecklistId === checklist.id}
+                            >
+                              {startingChecklistId === checklist.id
+                                ? "Opening..."
+                                : "Select and Fill"}
+                            </button>
                           </div>
                         </div>
                       ) : null}
