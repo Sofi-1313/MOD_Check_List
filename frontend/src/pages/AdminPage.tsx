@@ -141,8 +141,18 @@ function mapReportToPdfPayload(report: Report) {
   };
 }
 
-function buildTemplateEmailBody(checklist: Checklist) {
-  const payload = {
+function sanitizeTemplateFileName(value: string) {
+  return (
+    value
+      .trim()
+      .replace(/[^\w.-]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 80) || "template"
+  );
+}
+
+function buildTemplateImportPayload(checklist: Checklist) {
+  return {
     format: TEMPLATE_IMPORT_FORMAT,
     version: 1,
     exportedAt: new Date().toISOString(),
@@ -161,14 +171,35 @@ function buildTemplateEmailBody(checklist: Checklist) {
       })),
     },
   };
+}
 
+function downloadTemplateImportPackage(checklist: Checklist) {
+  const fileName = `${sanitizeTemplateFileName(checklist.title)}.json`;
+  const payload = buildTemplateImportPayload(checklist);
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+
+  return fileName;
+}
+
+function buildTemplateEmailBody(fileName: string) {
   return [
     "This email contains an importable checklist template package.",
-    "The receiving app should import the JSON between the markers below.",
+    `Please attach the downloaded file: ${fileName}`,
     "",
-    `${TEMPLATE_IMPORT_FORMAT}_BEGIN`,
-    JSON.stringify(payload),
-    `${TEMPLATE_IMPORT_FORMAT}_END`,
+    "The receiving app should import that JSON file as a checklist template.",
+    "",
+    `Format: ${TEMPLATE_IMPORT_FORMAT}`,
   ].join("\n");
 }
 
@@ -658,14 +689,15 @@ export default function AdminPage({ user, onLogout }: Props) {
       return;
     }
 
+    const fileName = downloadTemplateImportPackage(checklist);
     const subject = `Template Import Package: ${checklist.title}`;
-    const body = buildTemplateEmailBody(checklist);
+    const body = buildTemplateEmailBody(fileName);
     const mailto = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(
       subject
     )}&body=${encodeURIComponent(body)}`;
 
     window.location.href = mailto;
-    setMessage(`Email application opened for ${checklist.title}.`);
+    setMessage(`Import file downloaded. Attach ${fileName} to the email.`);
   };
 
   const assign = async () => {
