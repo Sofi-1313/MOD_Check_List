@@ -39,7 +39,7 @@ type QuestionForm = {
 
 type AdminSectionKey = "templates" | "assignments" | "users" | "reports" | "walkthrough";
 
-const MAILTO_BODY_LIMIT = 12000;
+const TEMPLATE_IMPORT_FORMAT = "MOD_CHECKLIST_TEMPLATE_EXPORT_V1";
 
 const ANSWER_TYPE_LABELS: Record<AnswerType, string> = {
   FORMAT1: "Yes / No / N/A",
@@ -142,35 +142,34 @@ function mapReportToPdfPayload(report: Report) {
 }
 
 function buildTemplateEmailBody(checklist: Checklist) {
-  const questionCount = (checklist.sections || []).reduce(
-    (total, section) => total + (section.items || []).length,
-    0
-  );
-  const lines = [
-    `Template: ${checklist.title}`,
-    `Sections: ${(checklist.sections || []).length}`,
-    `Questions: ${questionCount}`,
+  const payload = {
+    format: TEMPLATE_IMPORT_FORMAT,
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    template: {
+      title: checklist.title,
+      imagePath: checklist.image_path || checklist.imagePath || "",
+      sections: (checklist.sections || []).map((section, sectionIndex) => ({
+        title: section.title,
+        sortOrder: section.sort_order || sectionIndex + 1,
+        items: (section.items || []).map((item, itemIndex) => ({
+          question: item.question,
+          answerType: item.answerType || item.answer_type || "FORMAT1",
+          options: item.options || [],
+          sortOrder: item.sort_order || itemIndex + 1,
+        })),
+      })),
+    },
+  };
+
+  return [
+    "This email contains an importable checklist template package.",
+    "The receiving app should import the JSON between the markers below.",
     "",
-    "Sections",
-  ];
-
-  (checklist.sections || []).forEach((section, sectionIndex) => {
-    lines.push(`${sectionIndex + 1}. ${section.title} (${section.items.length} questions)`);
-    (section.items || []).forEach((item, itemIndex) => {
-      const answerType = item.answerType || item.answer_type || "FORMAT1";
-      const options = item.options?.length ? ` [${item.options.join(", ")}]` : "";
-      lines.push(`   ${itemIndex + 1}. ${item.question} (${answerType})${options}`);
-    });
-    lines.push("");
-  });
-
-  const body = lines.join("\n");
-
-  if (body.length <= MAILTO_BODY_LIMIT) {
-    return body;
-  }
-
-  return `${body.slice(0, MAILTO_BODY_LIMIT)}\n\nTemplate content was shortened because email apps limit prefilled message length.`;
+    `${TEMPLATE_IMPORT_FORMAT}_BEGIN`,
+    JSON.stringify(payload),
+    `${TEMPLATE_IMPORT_FORMAT}_END`,
+  ].join("\n");
 }
 
 export default function AdminPage({ user, onLogout }: Props) {
@@ -659,7 +658,7 @@ export default function AdminPage({ user, onLogout }: Props) {
       return;
     }
 
-    const subject = `Checklist Template: ${checklist.title}`;
+    const subject = `Template Import Package: ${checklist.title}`;
     const body = buildTemplateEmailBody(checklist);
     const mailto = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(
       subject

@@ -54,7 +54,7 @@ Important:
 - AI Action Plan Excel export for failed YES/NO items.
 - Azure OpenAI/OpenAI action-plan classification support with local fallback.
 - Template display title and optional template image support.
-- Admin can open the user's email app with any checklist template prefilled in the message body.
+- Admin can open the user's email app with any checklist template as an importable JSON package in the message body.
 - Checklist image is shown proportionally at smaller size.
 - Question types renamed for admin clarity: Yes / No / N/A, Date, Text, Dropdown, Check Box.
 - Check Box questions support multiple selected answers.
