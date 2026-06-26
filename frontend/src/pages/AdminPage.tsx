@@ -39,6 +39,8 @@ type QuestionForm = {
 
 type AdminSectionKey = "templates" | "assignments" | "users" | "reports" | "walkthrough";
 
+const MAILTO_BODY_LIMIT = 12000;
+
 const ANSWER_TYPE_LABELS: Record<AnswerType, string> = {
   FORMAT1: "Yes / No / N/A",
   DATE: "Date",
@@ -139,6 +141,38 @@ function mapReportToPdfPayload(report: Report) {
   };
 }
 
+function buildTemplateEmailBody(checklist: Checklist) {
+  const questionCount = (checklist.sections || []).reduce(
+    (total, section) => total + (section.items || []).length,
+    0
+  );
+  const lines = [
+    `Template: ${checklist.title}`,
+    `Sections: ${(checklist.sections || []).length}`,
+    `Questions: ${questionCount}`,
+    "",
+    "Sections",
+  ];
+
+  (checklist.sections || []).forEach((section, sectionIndex) => {
+    lines.push(`${sectionIndex + 1}. ${section.title} (${section.items.length} questions)`);
+    (section.items || []).forEach((item, itemIndex) => {
+      const answerType = item.answerType || item.answer_type || "FORMAT1";
+      const options = item.options?.length ? ` [${item.options.join(", ")}]` : "";
+      lines.push(`   ${itemIndex + 1}. ${item.question} (${answerType})${options}`);
+    });
+    lines.push("");
+  });
+
+  const body = lines.join("\n");
+
+  if (body.length <= MAILTO_BODY_LIMIT) {
+    return body;
+  }
+
+  return `${body.slice(0, MAILTO_BODY_LIMIT)}\n\nTemplate content was shortened because email apps limit prefilled message length.`;
+}
+
 export default function AdminPage({ user, onLogout }: Props) {
   const [activeAdminPage, setActiveAdminPage] = useState<AdminSectionKey>("templates");
   const [users, setUsers] = useState<User[]>([]);
@@ -150,6 +184,7 @@ export default function AdminPage({ user, onLogout }: Props) {
   const [expandedAssignmentId, setExpandedAssignmentId] = useState<number | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
   const [expandedReportId, setExpandedReportId] = useState<number | null>(null);
+  const [templateEmailForms, setTemplateEmailForms] = useState<Record<number, string>>({});
 
   const [title, setTitle] = useState("");
   const [templateImagePath, setTemplateImagePath] = useState("");
@@ -611,6 +646,27 @@ export default function AdminPage({ user, onLogout }: Props) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Template could not be copied");
     }
+  };
+
+  const handleEmailTemplate = (checklist: Checklist) => {
+    setMessage("");
+    setError("");
+
+    const email = (templateEmailForms[checklist.id] || "").trim();
+
+    if (!email) {
+      setError("Email address is required.");
+      return;
+    }
+
+    const subject = `Checklist Template: ${checklist.title}`;
+    const body = buildTemplateEmailBody(checklist);
+    const mailto = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+
+    window.location.href = mailto;
+    setMessage(`Email application opened for ${checklist.title}.`);
   };
 
   const assign = async () => {
@@ -1309,6 +1365,26 @@ export default function AdminPage({ user, onLogout }: Props) {
                               onClick={() => handleForceDeleteTemplate(c.id)}
                             >
                               Force Delete
+                            </button>
+                          </div>
+                          <div style={{ ...styles.row, marginTop: 12 }}>
+                            <input
+                              style={{ ...styles.input, flex: "1 1 240px" }}
+                              type="email"
+                              value={templateEmailForms[c.id] || ""}
+                              onChange={(e) =>
+                                setTemplateEmailForms((prev) => ({
+                                  ...prev,
+                                  [c.id]: e.target.value,
+                                }))
+                              }
+                              placeholder="Email address"
+                            />
+                            <button
+                              style={styles.button}
+                              onClick={() => handleEmailTemplate(c)}
+                            >
+                              Email
                             </button>
                           </div>
                         </div>
